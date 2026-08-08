@@ -43,7 +43,7 @@ cd FireRemoteServer
 
 ## FireRemoteController
 
-Android 専用の .NET MAUI 初期プロジェクトです。接続先 IP と Port を入力し、Connect 後に **Send test ping** または `◀`（Back）/ `●`（Home）/ `■`（Recents）でCommandを送信します。右側の将来プレビュー領域をタップすると、領域左上を `(0,0)` としたMAUIのデバイス非依存単位によるローカル座標をStatusで確認できます。Preview画像、Fire実座標への変換、`tap` Command送信はまだ実装していません。
+Android 専用の .NET MAUI 初期プロジェクトです。通常画面は将来のPreview領域を中心とし、下部の `◀`（Back）/ `●`（Home）/ `■`（Recents）からCommandを送信します。Server IP、Port、Connect / Disconnect、詳細Status、**Send test ping** は下部の設定ボタンから開く接続設定内にあります。Preview領域をタップすると、領域左上を `(0,0)` としたMAUIのデバイス非依存単位によるローカル座標を設定画面のStatusとDebug出力で確認できます。Preview画像、Fire実座標への変換、`tap` Command送信はまだ実装していません。
 
 ```powershell
 dotnet build FireRemoteController/FireRemoteController.csproj

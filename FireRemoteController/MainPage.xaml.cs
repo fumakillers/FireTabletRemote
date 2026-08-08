@@ -13,6 +13,19 @@ public partial class MainPage : ContentPage
 		this.client = client;
 		client.ConnectionChanged += OnConnectionChanged;
 		client.MessageReceived += OnMessageReceived;
+		SetConnectionState(client.IsConnected ? "Connected" : "Disconnected", client.IsConnected);
+	}
+
+	private void OnSettingsClicked(object? sender, EventArgs e)
+	{
+		SettingsOverlay.IsVisible = true;
+	}
+
+	private void OnCloseSettingsClicked(object? sender, EventArgs e)
+	{
+		ServerIpEntry.Unfocus();
+		PortEntry.Unfocus();
+		SettingsOverlay.IsVisible = false;
 	}
 
 	private async void OnConnectClicked(object? sender, EventArgs e)
@@ -20,6 +33,7 @@ public partial class MainPage : ContentPage
 		if (!int.TryParse(PortEntry.Text, out var port) || port is < 1 or > 65535)
 		{
 			SetStatus("Port must be between 1 and 65535.");
+			SetConnectionError();
 			return;
 		}
 
@@ -31,6 +45,7 @@ public partial class MainPage : ContentPage
 		catch (Exception error)
 		{
 			SetStatus($"Connection failed: {error.Message}");
+			SetConnectionError();
 		}
 		finally
 		{
@@ -48,6 +63,7 @@ public partial class MainPage : ContentPage
 		catch (Exception error)
 		{
 			SetStatus($"Disconnect failed: {error.Message}");
+			SetConnectionError();
 		}
 		finally
 		{
@@ -66,6 +82,7 @@ public partial class MainPage : ContentPage
 		catch (Exception error)
 		{
 			SetStatus($"Send failed: {error.Message}");
+			SetConnectionError();
 		}
 	}
 
@@ -91,6 +108,7 @@ public partial class MainPage : ContentPage
 		catch (Exception error)
 		{
 			SetStatus($"{displayName} failed: {error.Message}");
+			SetConnectionError();
 		}
 	}
 
@@ -110,6 +128,7 @@ public partial class MainPage : ContentPage
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			SetStatus(connected ? "Connected" : "Disconnected");
+			SetConnectionState(connected ? "Connected" : "Disconnected", connected);
 			ConnectButton.IsEnabled = !connected;
 			DisconnectButton.IsEnabled = connected;
 			SetRemoteCommandButtonsEnabled(connected);
@@ -124,6 +143,19 @@ public partial class MainPage : ContentPage
 	private void SetStatus(string status)
 	{
 		StatusLabel.Text = $"Status: {status}";
+		System.Diagnostics.Debug.WriteLine(StatusLabel.Text);
+	}
+
+	private void SetConnectionError()
+	{
+		ConnectionStateLabel.Text = "Error";
+		ConnectionStateLabel.TextColor = Color.FromArgb("#EF5350");
+	}
+
+	private void SetConnectionState(string status, bool connected)
+	{
+		ConnectionStateLabel.Text = status;
+		ConnectionStateLabel.TextColor = Color.FromArgb(connected ? "#4CAF50" : "#9E9E9E");
 	}
 
 	private void SetBusy(bool busy)

@@ -69,6 +69,42 @@ public partial class MainPage : ContentPage
 		}
 	}
 
+	private async void OnBackClicked(object? sender, EventArgs e) =>
+		await SendNavigationCommandAsync("Back", RemoteCommandJson.CreateBack);
+
+	private async void OnHomeClicked(object? sender, EventArgs e) =>
+		await SendNavigationCommandAsync("Home", RemoteCommandJson.CreateHome);
+
+	private async void OnRecentsClicked(object? sender, EventArgs e) =>
+		await SendNavigationCommandAsync("Recents", RemoteCommandJson.CreateRecents);
+
+	private async Task SendNavigationCommandAsync(
+		string displayName,
+		Func<string?, string> createCommand)
+	{
+		try
+		{
+			var requestId = Guid.NewGuid().ToString("N");
+			await client.SendAsync(createCommand(requestId));
+			SetStatus($"{displayName} sent ({requestId[..8]}).");
+		}
+		catch (Exception error)
+		{
+			SetStatus($"{displayName} failed: {error.Message}");
+		}
+	}
+
+	private void OnPreviewTapped(object? sender, TappedEventArgs e)
+	{
+		var position = e.GetPosition(PreviewInputArea);
+		if (position is null)
+		{
+			return;
+		}
+
+		SetStatus($"Preview tap: x={position.Value.X:F0}, y={position.Value.Y:F0}");
+	}
+
 	private void OnConnectionChanged(object? sender, bool connected)
 	{
 		MainThread.BeginInvokeOnMainThread(() =>
@@ -76,7 +112,7 @@ public partial class MainPage : ContentPage
 			SetStatus(connected ? "Connected" : "Disconnected");
 			ConnectButton.IsEnabled = !connected;
 			DisconnectButton.IsEnabled = connected;
-			SendPingButton.IsEnabled = connected;
+			SetRemoteCommandButtonsEnabled(connected);
 		});
 	}
 
@@ -94,6 +130,14 @@ public partial class MainPage : ContentPage
 	{
 		ConnectButton.IsEnabled = !busy && !client.IsConnected;
 		DisconnectButton.IsEnabled = !busy && client.IsConnected;
-		SendPingButton.IsEnabled = !busy && client.IsConnected;
+		SetRemoteCommandButtonsEnabled(!busy && client.IsConnected);
+	}
+
+	private void SetRemoteCommandButtonsEnabled(bool enabled)
+	{
+		SendPingButton.IsEnabled = enabled;
+		BackButton.IsEnabled = enabled;
+		HomeButton.IsEnabled = enabled;
+		RecentsButton.IsEnabled = enabled;
 	}
 }

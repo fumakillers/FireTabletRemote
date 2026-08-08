@@ -27,14 +27,35 @@
         </Grid>
 
         <Border Grid.Column="1" Padding="24" StrokeShape="RoundRectangle 12" StrokeThickness="1">
-            <Grid RowDefinitions="*,Auto" RowSpacing="16">
-                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
-                    <Label Text="Future landscape preview area" FontSize="22"
-                           HorizontalTextAlignment="Center" />
-                    <Label Text="Preview and coordinate conversion are not implemented."
-                           HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
-                <Button x:Name="SendPingButton" Grid.Row="1" Text="Send test ping"
+            <Grid RowDefinitions="*,Auto,Auto" RowSpacing="10">
+                <Grid x:Name="PreviewInputArea" Grid.Row="0" BackgroundColor="Transparent">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPreviewTapped" />
+                    </Grid.GestureRecognizers>
+                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                        <Label Text="Future landscape preview area" FontSize="22"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Tap to inspect local preview coordinates."
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                    <Button x:Name="BackButton" Grid.Column="0" Text="&#x25C0;" FontSize="22"
+                            IsEnabled="False" MinimumHeightRequest="56"
+                            SemanticProperties.Description="Back"
+                            Clicked="OnBackClicked" />
+                    <Button x:Name="HomeButton" Grid.Column="1" Text="&#x25CF;" FontSize="22"
+                            IsEnabled="False" MinimumHeightRequest="56"
+                            SemanticProperties.Description="Home"
+                            Clicked="OnHomeClicked" />
+                    <Button x:Name="RecentsButton" Grid.Column="2" Text="&#x25A0;" FontSize="22"
+                            IsEnabled="False" MinimumHeightRequest="56"
+                            SemanticProperties.Description="Recents"
+                            Clicked="OnRecentsClicked" />
+                </Grid>
+
+                <Button x:Name="SendPingButton" Grid.Row="2" Text="Send test ping"
                         IsEnabled="False" HorizontalOptions="Fill" Clicked="OnSendPingClicked" />
             </Grid>
         </Border>

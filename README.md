@@ -23,7 +23,16 @@ tools/MockWebSocketServer/ Controller 単体確認用 .NET mock
 
 Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ実行します。画面の **Start server** を押すと `ws://<tablet-ip>:8080/ws` で待ち受けます。受信内容は Logcat の `FireRemoteWebSocket` と `FireRemoteCommand` タグで確認できます。
 
-`ping` は `pong` を返します。`back` は接続済みの AccessibilityService を通じてAndroidの「戻る」を実行します。`tap` / `longPress` はJSONの解析まで実装済みですが、gesture実行は未実装です。
+`ping` は `pong` を返します。`back` / `home` / `recents` は接続済みの AccessibilityService を通じてAndroidのGlobal Actionを実行します。`tap` / `longPress` はJSONの解析まで実装済みですが、gesture実行は未実装です。
+
+| Command | 現在の状態 |
+|---|---|
+| `ping` | 実装済み |
+| `back` | 実装済み |
+| `home` | 実装済み |
+| `recents` | 実装済み |
+| `tap` | Protocol・解析のみ / 実操作未実装 |
+| `longPress` | Protocol・解析のみ / 実操作未実装 |
 
 コマンド解析テスト:
 
@@ -34,7 +43,7 @@ cd FireRemoteServer
 
 ## FireRemoteController
 
-Android 専用の .NET MAUI 初期プロジェクトです。接続先 IP と Port を入力し、Connect 後に **Send test ping** で JSON を送信します。右側は将来の横向きプレビュー領域として空けてあります。
+Android 専用の .NET MAUI 初期プロジェクトです。接続先 IP と Port を入力し、Connect 後に **Send test ping** または `◀`（Back）/ `●`（Home）/ `■`（Recents）でCommandを送信します。右側の将来プレビュー領域をタップすると、領域左上を `(0,0)` としたMAUIのデバイス非依存単位によるローカル座標をStatusで確認できます。Preview画像、Fire実座標への変換、`tap` Command送信はまだ実装していません。
 
 ```powershell
 dotnet build FireRemoteController/FireRemoteController.csproj
@@ -82,4 +91,4 @@ Controller から PC の LAN IP（Android Emulator なら通常 `10.0.2.2`）、
 
 ## 現在の開発段階
 
-初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback操作を実装しています。画面プレビュー、座標変換、tap/longPress gesture、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。
+初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback/home/recents操作を実装しています。Controllerでは将来Preview領域のローカル座標を取得できます。画面プレビュー、Fire実座標への変換、tap/longPress gesture、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。

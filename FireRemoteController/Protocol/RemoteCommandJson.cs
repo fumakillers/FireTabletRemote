@@ -27,6 +27,20 @@ public static class RemoteCommandJson
 		requestId
 	});
 
+	public static string CreateHome(string? requestId = null) => JsonSerializer.Serialize(new
+	{
+		version = 1,
+		type = "home",
+		requestId
+	});
+
+	public static string CreateRecents(string? requestId = null) => JsonSerializer.Serialize(new
+	{
+		version = 1,
+		type = "recents",
+		requestId
+	});
+
 	public static string CreateLongPress(int x, int y, int durationMs, string? requestId = null) =>
 		JsonSerializer.Serialize(new
 		{

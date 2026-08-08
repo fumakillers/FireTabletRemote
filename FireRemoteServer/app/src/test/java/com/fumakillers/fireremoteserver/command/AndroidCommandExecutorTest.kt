@@ -19,12 +19,47 @@ class AndroidCommandExecutorTest {
 
     @Test
     fun backSucceedsWhenGlobalActionSucceeds() {
-        val executor = executorReturning(AndroidActionResult.Performed)
+        var performedAction: AndroidGlobalAction? = null
+        val executor = AndroidCommandExecutor { action ->
+            performedAction = action
+            AndroidActionResult.Performed
+        }
 
         val result = executor.execute(RemoteCommand.Back("back-1"))
 
         assertTrue(result.success)
         assertEquals("Back performed", result.message)
+        assertEquals(AndroidGlobalAction.BACK, performedAction)
+    }
+
+    @Test
+    fun homeSucceedsWhenGlobalActionSucceeds() {
+        var performedAction: AndroidGlobalAction? = null
+        val executor = AndroidCommandExecutor { action ->
+            performedAction = action
+            AndroidActionResult.Performed
+        }
+
+        val result = executor.execute(RemoteCommand.Home("home-1"))
+
+        assertTrue(result.success)
+        assertEquals("Home performed", result.message)
+        assertEquals(AndroidGlobalAction.HOME, performedAction)
+    }
+
+    @Test
+    fun recentsSucceedsWhenGlobalActionSucceeds() {
+        var performedAction: AndroidGlobalAction? = null
+        val executor = AndroidCommandExecutor { action ->
+            performedAction = action
+            AndroidActionResult.Performed
+        }
+
+        val result = executor.execute(RemoteCommand.Recents("recents-1"))
+
+        assertTrue(result.success)
+        assertEquals("Recents performed", result.message)
+        assertEquals(AndroidGlobalAction.RECENTS, performedAction)
     }
 
     @Test

@@ -12,7 +12,7 @@
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | `version` | integer | yes | Protocol version. The initial value is `1`. |
-| `type` | string | yes | `ping`, `tap`, `back`, or `longPress` |
+| `type` | string | yes | `ping`, `tap`, `back`, `home`, `recents`, or `longPress` |
 | `requestId` | string | no | Caller-generated correlation ID. Returned unchanged when accepted by the parser. |
 
 Unknown command types or unsupported versions are rejected. Additional unknown fields may be ignored so a compatible sender can be extended later.
@@ -39,6 +39,18 @@ Unknown command types or unsupported versions are rejected. Additional unknown f
 {"version":1,"type":"back","requestId":"back-1"}
 ```
 
+### home
+
+```json
+{"version":1,"type":"home","requestId":"home-1"}
+```
+
+### recents
+
+```json
+{"version":1,"type":"recents","requestId":"recents-1"}
+```
+
 ### longPress
 
 `durationMs` is an integer from `100` through `60000` milliseconds.
@@ -55,4 +67,4 @@ The server responds after parsing and dispatching a command. A `success` value o
 {"version":1,"type":"result","requestId":"check-1","success":true,"message":"pong"}
 ```
 
-The current Server executes `ping` and, while its AccessibilityService is connected, `back`. It parses `tap` and `longPress`, then returns `success: false` because gesture execution is intentionally not implemented yet.
+The current Server executes `ping` and, while its AccessibilityService is connected, `back`, `home`, and `recents`. It parses `tap` and `longPress`, then returns `success: false` because gesture execution is intentionally not implemented yet.

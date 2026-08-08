@@ -1,7 +1,13 @@
 package com.fumakillers.fireremoteserver.command
 
 fun interface AndroidActionGateway {
-    fun performBack(): AndroidActionResult
+    fun perform(action: AndroidGlobalAction): AndroidActionResult
+}
+
+enum class AndroidGlobalAction {
+    BACK,
+    HOME,
+    RECENTS,
 }
 
 sealed interface AndroidActionResult {

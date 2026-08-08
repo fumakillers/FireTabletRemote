@@ -20,7 +20,7 @@ FireRemoteServer (Kotlin, landscape)
              |
              v
   FireRemoteAccessibilityService
-  (`back` global action is implemented; gestures are not)
+  (`back` / `home` / `recents` global actions are implemented; gestures are not)
 ```
 
 ## Boundaries
@@ -29,8 +29,8 @@ FireRemoteServer (Kotlin, landscape)
 - WebSocket classes transport complete JSON messages; they do not know preview sizes or transform coordinates.
 - `CommandParser` validates wire input. `CommandDispatcher` invokes a replaceable `CommandExecutor`.
 - `AndroidCommandExecutor` depends on the small `AndroidActionGateway` boundary. The process-local `AccessibilityServiceBridge` registers the system-created service while connected and clears the exact instance on unbind/destroy.
-- `ping` does not use AccessibilityService. `back` uses `GLOBAL_ACTION_BACK`; `tap` and `longPress` remain unimplemented.
-- The Controller keeps command JSON creation separate from `ClientWebSocket`, leaving future preview mapping outside both.
+- `ping` does not use AccessibilityService. `back`, `home`, and `recents` use their matching Android global actions; `tap` and `longPress` remain unimplemented.
+- The Controller keeps command JSON creation separate from `ClientWebSocket`. The preview input reports MAUI device-independent coordinates local to its top-left; future Fire-screen mapping remains outside transport.
 - `tools/MockWebSocketServer` lets the Controller connect without a Fire Tablet or Server APK.
 
 ## Current security boundary

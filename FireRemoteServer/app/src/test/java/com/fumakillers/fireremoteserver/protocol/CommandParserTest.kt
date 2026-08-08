@@ -17,6 +17,24 @@ class CommandParserTest {
     }
 
     @Test
+    fun parsesHomeCommand() {
+        val command = CommandParser.parse(
+            """{"version":1,"type":"home","requestId":"home-1"}""",
+        ) as RemoteCommand.Home
+
+        assertEquals("home-1", command.requestId)
+    }
+
+    @Test
+    fun parsesRecentsCommand() {
+        val command = CommandParser.parse(
+            """{"version":1,"type":"recents","requestId":"recents-1"}""",
+        ) as RemoteCommand.Recents
+
+        assertEquals("recents-1", command.requestId)
+    }
+
+    @Test
     fun rejectsUnsupportedVersion() {
         assertThrows(CommandParseException::class.java) {
             CommandParser.parse("""{"version":2,"type":"ping"}""")

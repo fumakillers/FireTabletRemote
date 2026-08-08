@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.util.Log
 import com.fumakillers.fireremoteserver.command.AndroidActionGateway
 import com.fumakillers.fireremoteserver.command.AndroidActionResult
+import com.fumakillers.fireremoteserver.command.AndroidGlobalAction
 
 object AccessibilityServiceBridge : AndroidActionGateway {
     private var service: FireRemoteAccessibilityService? = null
@@ -24,24 +25,31 @@ object AccessibilityServiceBridge : AndroidActionGateway {
         @Synchronized get() = service != null
 
     @Synchronized
-    override fun performBack(): AndroidActionResult {
-        Log.i(TAG, "Back command received")
+    override fun perform(action: AndroidGlobalAction): AndroidActionResult {
+        val actionName = action.name.lowercase()
+        Log.i(TAG, "$actionName command received")
         val connectedService = service
         if (connectedService == null) {
-            Log.w(TAG, "Back failed: Accessibility service is not connected")
+            Log.w(TAG, "$actionName failed: Accessibility service is not connected")
             return AndroidActionResult.ServiceNotConnected
         }
 
+        val globalAction = when (action) {
+            AndroidGlobalAction.BACK -> AccessibilityService.GLOBAL_ACTION_BACK
+            AndroidGlobalAction.HOME -> AccessibilityService.GLOBAL_ACTION_HOME
+            AndroidGlobalAction.RECENTS -> AccessibilityService.GLOBAL_ACTION_RECENTS
+        }
+
         return try {
-            if (connectedService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)) {
-                Log.i(TAG, "Back action performed successfully")
+            if (connectedService.performGlobalAction(globalAction)) {
+                Log.i(TAG, "$actionName action performed successfully")
                 AndroidActionResult.Performed
             } else {
-                Log.w(TAG, "Back action was rejected by AccessibilityService")
+                Log.w(TAG, "$actionName action was rejected by AccessibilityService")
                 AndroidActionResult.Rejected
             }
         } catch (error: RuntimeException) {
-            Log.e(TAG, "Back action failed", error)
+            Log.e(TAG, "$actionName action failed", error)
             AndroidActionResult.Failed
         }
     }

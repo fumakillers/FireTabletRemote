@@ -3,7 +3,9 @@ package com.fumakillers.fireremoteserver.network
 import android.util.Log
 import com.fumakillers.fireremoteserver.command.CommandDispatcher
 import org.java_websocket.WebSocket
+import org.java_websocket.drafts.Draft
 import org.java_websocket.handshake.ClientHandshake
+import org.java_websocket.handshake.ServerHandshakeBuilder
 import org.java_websocket.server.WebSocketServer
 import java.net.InetSocketAddress
 
@@ -11,6 +13,15 @@ class CommandWebSocketServer(
     port: Int,
     private val dispatcher: CommandDispatcher,
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
+    override fun onWebsocketHandshakeReceivedAsServer(
+        connection: WebSocket,
+        draft: Draft,
+        request: ClientHandshake,
+    ): ServerHandshakeBuilder {
+        WebSocketEndpoint.requireAllowed(request.resourceDescriptor)
+        return super.onWebsocketHandshakeReceivedAsServer(connection, draft, request)
+    }
+
     override fun onOpen(connection: WebSocket, handshake: ClientHandshake) {
         Log.i(TAG, "Client connected: ${connection.remoteSocketAddress}")
     }

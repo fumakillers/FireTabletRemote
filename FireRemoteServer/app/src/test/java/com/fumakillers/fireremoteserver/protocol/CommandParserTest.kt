@@ -38,4 +38,11 @@ class CommandParserTest {
             CommandParser.parse("""{"version":1,"type":"tap","x":10.5,"y":20}""")
         }
     }
+
+    @Test
+    fun rejectsCoordinateFarBelowIntRange() {
+        assertThrows(CommandParseException::class.java) {
+            CommandParser.parse("""{"version":1,"type":"tap","x":-4294967296,"y":20}""")
+        }
+    }
 }

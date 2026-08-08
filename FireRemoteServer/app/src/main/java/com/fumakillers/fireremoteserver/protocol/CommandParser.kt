@@ -40,12 +40,13 @@ object CommandParser {
         val number = try { json.get(name) as? Number } catch (_: JSONException) { null }
             ?: throw CommandParseException("$name must be an integer")
         val longValue = number.toLong()
-        if (number.toDouble() != longValue.toDouble() || longValue > Int.MAX_VALUE) {
+        if (number.toDouble() != longValue.toDouble()) {
             throw CommandParseException("$name must be an integer")
         }
-        val value = longValue.toInt()
-        if (value < 0) throw CommandParseException("$name must be zero or greater")
-        return value
+        if (longValue !in 0..Int.MAX_VALUE.toLong()) {
+            throw CommandParseException("$name must be between 0 and ${Int.MAX_VALUE}")
+        }
+        return longValue.toInt()
     }
 
     private fun requiredDuration(json: JSONObject): Long {

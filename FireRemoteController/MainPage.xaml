@@ -57,11 +57,13 @@
                             <Label Grid.Row="0" Grid.Column="0" Text="Server IP" />
                             <Label Grid.Row="0" Grid.Column="1" Text="Port" />
                             <Entry x:Name="ServerIpEntry" Grid.Row="1" Grid.Column="0"
-                                   Text="192.168.196.202" Keyboard="Url"
+                                   AutomationId="ServerIpEntry" Keyboard="Numeric" MaxLength="15"
                                    ClearButtonVisibility="WhileEditing"
-                                   SemanticProperties.Hint="Fire Tablet IP address" />
+                                   SemanticProperties.Hint="Fire Tablet IPv4 address"
+                                   TextChanged="OnServerIpTextChanged" />
                             <Entry x:Name="PortEntry" Grid.Row="1" Grid.Column="1"
-                                   Text="8080" Keyboard="Numeric" MaxLength="5" />
+                                   AutomationId="PortEntry" Keyboard="Numeric" MaxLength="5"
+                                   TextChanged="OnPortTextChanged" />
                         </Grid>
                         <HorizontalStackLayout Spacing="8">
                             <Button x:Name="ConnectButton" Text="Connect"

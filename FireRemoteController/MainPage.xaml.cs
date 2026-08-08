@@ -1,15 +1,23 @@
 using FireRemoteController.Protocol;
 using FireRemoteController.Services;
+using System.Globalization;
+using Microsoft.Maui.Storage;
 
 namespace FireRemoteController;
 
 public partial class MainPage : ContentPage
 {
+	private const string DefaultServerIp = "192.168.196.202";
+	private const string DefaultPort = "8080";
+	private const string ServerIpPreferenceKey = "connection.serverIp";
+	private const string PortPreferenceKey = "connection.port";
 	private readonly IRemoteWebSocketClient client;
 
 	public MainPage(IRemoteWebSocketClient client)
 	{
 		InitializeComponent();
+		ServerIpEntry.Text = Preferences.Default.Get(ServerIpPreferenceKey, DefaultServerIp);
+		PortEntry.Text = Preferences.Default.Get(PortPreferenceKey, DefaultPort);
 		this.client = client;
 		client.ConnectionChanged += OnConnectionChanged;
 		client.MessageReceived += OnMessageReceived;
@@ -23,6 +31,7 @@ public partial class MainPage : ContentPage
 
 	private void OnCloseSettingsClicked(object? sender, EventArgs e)
 	{
+		SaveConnectionSettingsIfValid();
 		ServerIpEntry.Unfocus();
 		PortEntry.Unfocus();
 		SettingsOverlay.IsVisible = false;
@@ -30,17 +39,27 @@ public partial class MainPage : ContentPage
 
 	private async void OnConnectClicked(object? sender, EventArgs e)
 	{
-		if (!int.TryParse(PortEntry.Text, out var port) || port is < 1 or > 65535)
+		var serverIp = ServerIpEntry.Text?.Trim() ?? string.Empty;
+		if (!IsValidIpv4Address(serverIp))
+		{
+			SetStatus("Server IP must be a valid IPv4 address (for example, 192.168.196.202).");
+			SetConnectionError();
+			return;
+		}
+
+		if (!TryParsePort(PortEntry.Text, out var port))
 		{
 			SetStatus("Port must be between 1 and 65535.");
 			SetConnectionError();
 			return;
 		}
 
+		SaveConnectionSettings(serverIp, port);
+
 		SetBusy(true);
 		try
 		{
-			await client.ConnectAsync(ServerIpEntry.Text?.Trim() ?? string.Empty, port);
+			await client.ConnectAsync(serverIp, port);
 		}
 		catch (Exception error)
 		{
@@ -51,6 +70,58 @@ public partial class MainPage : ContentPage
 		{
 			SetBusy(false);
 		}
+	}
+
+	private void OnServerIpTextChanged(object? sender, TextChangedEventArgs e)
+	{
+		SanitizeEntry((Entry)sender!, e.NewTextValue, character =>
+			character is >= '0' and <= '9' || character == '.');
+	}
+
+	private void OnPortTextChanged(object? sender, TextChangedEventArgs e)
+	{
+		SanitizeEntry((Entry)sender!, e.NewTextValue, character =>
+			character is >= '0' and <= '9');
+	}
+
+	private static void SanitizeEntry(Entry entry, string? text, Func<char, bool> isAllowed)
+	{
+		var sanitized = string.Concat((text ?? string.Empty).Where(isAllowed));
+		if (!string.Equals(entry.Text, sanitized, StringComparison.Ordinal))
+		{
+			entry.Text = sanitized;
+		}
+	}
+
+	private static bool IsValidIpv4Address(string serverIp)
+	{
+		var octets = serverIp.Split('.');
+		return octets.Length == 4 && octets.All(octet =>
+			octet.Length is > 0 and <= 3
+			&& octet.All(character => character is >= '0' and <= '9')
+			&& int.TryParse(octet, NumberStyles.None, CultureInfo.InvariantCulture, out var value)
+			&& value <= 255);
+	}
+
+	private static bool TryParsePort(string? text, out int port)
+	{
+		return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out port)
+			&& port is >= 1 and <= 65535;
+	}
+
+	private void SaveConnectionSettingsIfValid()
+	{
+		var serverIp = ServerIpEntry.Text?.Trim() ?? string.Empty;
+		if (IsValidIpv4Address(serverIp) && TryParsePort(PortEntry.Text, out var port))
+		{
+			SaveConnectionSettings(serverIp, port);
+		}
+	}
+
+	private static void SaveConnectionSettings(string serverIp, int port)
+	{
+		Preferences.Default.Set(ServerIpPreferenceKey, serverIp);
+		Preferences.Default.Set(PortPreferenceKey, port.ToString(CultureInfo.InvariantCulture));
 	}
 
 	private async void OnDisconnectClicked(object? sender, EventArgs e)

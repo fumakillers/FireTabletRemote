@@ -33,7 +33,7 @@ app.Run(async context =>
         } while (!result.EndOfMessage);
 
         var input = Encoding.UTF8.GetString(message.ToArray());
-        Console.WriteLine($"Received: {input}");
+        Console.WriteLine($"[{DateTimeOffset.Now:O}] Received: {input}");
         var response = BuildResponse(input);
         await socket.SendAsync(
             Encoding.UTF8.GetBytes(response),
@@ -53,6 +53,17 @@ static string BuildResponse(string input)
         var root = document.RootElement;
         var type = root.TryGetProperty("type", out var typeElement) ? typeElement.GetString() : "unknown";
         var requestId = root.TryGetProperty("requestId", out var idElement) ? idElement.GetString() : null;
+        if (type == "previewRequest")
+        {
+            return JsonSerializer.Serialize(new
+            {
+                version = 1,
+                type = "previewError",
+                requestId,
+                message = "Mock server does not provide screenshots"
+            });
+        }
+
         return JsonSerializer.Serialize(new
         {
             version = 1,

@@ -9,12 +9,15 @@ import android.os.IBinder
 import android.util.Log
 import com.fumakillers.fireremoteserver.MainActivity
 import com.fumakillers.fireremoteserver.accessibility.AccessibilityServiceBridge
+import com.fumakillers.fireremoteserver.accessibility.AccessibilityScreenshotGateway
 import com.fumakillers.fireremoteserver.command.AndroidCommandExecutor
 import com.fumakillers.fireremoteserver.command.CommandDispatcher
 import com.fumakillers.fireremoteserver.network.CommandWebSocketServer
+import com.fumakillers.fireremoteserver.preview.AccessibilityScreenshotProvider
 
 class FireRemoteServerService : Service() {
     private var server: CommandWebSocketServer? = null
+    private var previewProvider: AccessibilityScreenshotProvider? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -33,9 +36,14 @@ class FireRemoteServerService : Service() {
             .build()
         startForeground(NOTIFICATION_ID, notification)
 
+        val provider = AccessibilityScreenshotProvider(AccessibilityScreenshotGateway)
+        previewProvider = provider
         server = CommandWebSocketServer(
             DEFAULT_PORT,
-            CommandDispatcher(AndroidCommandExecutor(AccessibilityServiceBridge)),
+            CommandDispatcher(
+                AndroidCommandExecutor(AccessibilityServiceBridge),
+                provider,
+            ),
         ).also { it.start() }
     }
 
@@ -47,6 +55,8 @@ class FireRemoteServerService : Service() {
             Log.w(TAG, "Interrupted while stopping WebSocket server", error)
         } finally {
             server = null
+            previewProvider?.close()
+            previewProvider = null
         }
         super.onDestroy()
     }

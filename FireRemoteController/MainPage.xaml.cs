@@ -11,7 +11,12 @@ public partial class MainPage : ContentPage
 	private const string DefaultPort = "8080";
 	private const string ServerIpPreferenceKey = "connection.serverIp";
 	private const string PortPreferenceKey = "connection.port";
+	private static readonly TimeSpan PreviewInterval = TimeSpan.FromSeconds(1);
 	private readonly IRemoteWebSocketClient client;
+	private readonly object previewLoopLock = new();
+	private CancellationTokenSource? previewLoopCancellation;
+	private TaskCompletionSource? pendingPreviewResponse;
+	private string? pendingPreviewRequestId;
 
 	public MainPage(IRemoteWebSocketClient client)
 	{
@@ -22,6 +27,18 @@ public partial class MainPage : ContentPage
 		client.ConnectionChanged += OnConnectionChanged;
 		client.MessageReceived += OnMessageReceived;
 		SetConnectionState(client.IsConnected ? "Connected" : "Disconnected", client.IsConnected);
+	}
+
+	protected override void OnAppearing()
+	{
+		base.OnAppearing();
+		StartPreviewLoop();
+	}
+
+	protected override void OnDisappearing()
+	{
+		StopPreviewLoop();
+		base.OnDisappearing();
 	}
 
 	private void OnSettingsClicked(object? sender, EventArgs e)
@@ -126,6 +143,7 @@ public partial class MainPage : ContentPage
 
 	private async void OnDisconnectClicked(object? sender, EventArgs e)
 	{
+		StopPreviewLoop();
 		SetBusy(true);
 		try
 		{
@@ -196,6 +214,15 @@ public partial class MainPage : ContentPage
 
 	private void OnConnectionChanged(object? sender, bool connected)
 	{
+		if (connected)
+		{
+			StartPreviewLoop();
+		}
+		else
+		{
+			StopPreviewLoop();
+		}
+
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			SetStatus(connected ? "Connected" : "Disconnected");
@@ -203,12 +230,134 @@ public partial class MainPage : ContentPage
 			ConnectButton.IsEnabled = !connected;
 			DisconnectButton.IsEnabled = connected;
 			SetRemoteCommandButtonsEnabled(connected);
+			if (!connected)
+			{
+				PreviewImage.Source = null;
+				PreviewPlaceholder.IsVisible = true;
+			}
 		});
 	}
 
 	private void OnMessageReceived(object? sender, string message)
 	{
+		if (PreviewProtocol.TryParseResponse(message, out var previewResponse))
+		{
+			if (!CompletePreviewRequest(previewResponse!.RequestId))
+			{
+				return;
+			}
+			MainThread.BeginInvokeOnMainThread(() => DisplayPreviewResponse(previewResponse));
+			return;
+		}
+
 		MainThread.BeginInvokeOnMainThread(() => SetStatus($"Received: {message}"));
+	}
+
+	private void StartPreviewLoop()
+	{
+		lock (previewLoopLock)
+		{
+			if (!client.IsConnected || previewLoopCancellation is not null)
+			{
+				return;
+			}
+
+			previewLoopCancellation = new CancellationTokenSource();
+			_ = RunPreviewLoopAsync(previewLoopCancellation);
+		}
+	}
+
+	private void StopPreviewLoop()
+	{
+		CancellationTokenSource? cancellation;
+		lock (previewLoopLock)
+		{
+			cancellation = previewLoopCancellation;
+			previewLoopCancellation = null;
+			pendingPreviewResponse?.TrySetCanceled();
+			pendingPreviewResponse = null;
+			pendingPreviewRequestId = null;
+		}
+
+		cancellation?.Cancel();
+	}
+
+	private async Task RunPreviewLoopAsync(CancellationTokenSource cancellation)
+	{
+		try
+		{
+			while (!cancellation.IsCancellationRequested && client.IsConnected)
+			{
+				var requestId = $"preview-{Guid.NewGuid():N}";
+				var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+				lock (previewLoopLock)
+				{
+					if (!ReferenceEquals(previewLoopCancellation, cancellation))
+					{
+						return;
+					}
+
+					pendingPreviewRequestId = requestId;
+					pendingPreviewResponse = completion;
+				}
+
+				await client.SendAsync(PreviewProtocol.CreateRequest(requestId), cancellation.Token);
+				await completion.Task.WaitAsync(cancellation.Token);
+				await Task.Delay(PreviewInterval, cancellation.Token);
+			}
+		}
+		catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+		{
+		}
+		catch (Exception error)
+		{
+			MainThread.BeginInvokeOnMainThread(() => SetStatus($"Preview stopped: {error.Message}"));
+		}
+		finally
+		{
+			lock (previewLoopLock)
+			{
+				if (ReferenceEquals(previewLoopCancellation, cancellation))
+				{
+					previewLoopCancellation = null;
+					pendingPreviewResponse = null;
+					pendingPreviewRequestId = null;
+				}
+			}
+			cancellation.Dispose();
+		}
+	}
+
+	private bool CompletePreviewRequest(string? requestId)
+	{
+		lock (previewLoopLock)
+		{
+			if (requestId == pendingPreviewRequestId)
+			{
+				var completion = pendingPreviewResponse;
+				pendingPreviewResponse = null;
+				pendingPreviewRequestId = null;
+				return completion?.TrySetResult() == true;
+			}
+
+			return false;
+		}
+	}
+
+	private void DisplayPreviewResponse(PreviewResponse response)
+	{
+		switch (response)
+		{
+			case PreviewFrame frame:
+				PreviewImage.Source = ImageSource.FromStream(
+					() => new MemoryStream(frame.Data, writable: false));
+				PreviewPlaceholder.IsVisible = false;
+				SetStatus($"Preview: {frame.Width}x{frame.Height}, {frame.Data.Length} bytes");
+				break;
+			case PreviewError error:
+				SetStatus($"Preview unavailable: {error.Message}");
+				break;
+		}
 	}
 
 	private void SetStatus(string status)

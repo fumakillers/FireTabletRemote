@@ -6,6 +6,7 @@ namespace FireRemoteController.Services;
 public sealed class RemoteWebSocketClient : IRemoteWebSocketClient
 {
 	private readonly SemaphoreSlim gate = new(1, 1);
+	private readonly SemaphoreSlim sendGate = new(1, 1);
 	private ClientWebSocket? socket;
 	private CancellationTokenSource? receiveCancellation;
 
@@ -47,12 +48,20 @@ public sealed class RemoteWebSocketClient : IRemoteWebSocketClient
 
 	public async Task SendAsync(string message, CancellationToken cancellationToken = default)
 	{
-		var activeSocket = socket;
-		if (activeSocket?.State != WebSocketState.Open)
-			throw new InvalidOperationException("WebSocket is not connected.");
+		await sendGate.WaitAsync(cancellationToken);
+		try
+		{
+			var activeSocket = socket;
+			if (activeSocket?.State != WebSocketState.Open)
+				throw new InvalidOperationException("WebSocket is not connected.");
 
-		var bytes = Encoding.UTF8.GetBytes(message);
-		await activeSocket.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+			var bytes = Encoding.UTF8.GetBytes(message);
+			await activeSocket.SendAsync(bytes, WebSocketMessageType.Text, true, cancellationToken);
+		}
+		finally
+		{
+			sendGate.Release();
+		}
 	}
 
 	public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -127,5 +136,6 @@ public sealed class RemoteWebSocketClient : IRemoteWebSocketClient
 	{
 		await DisconnectAsync();
 		gate.Dispose();
+		sendGate.Dispose();
 	}
 }

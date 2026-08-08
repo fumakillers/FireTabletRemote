@@ -10,7 +10,12 @@
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnPreviewTapped" />
                 </Grid.GestureRecognizers>
-                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                <Image x:Name="PreviewImage" Aspect="AspectFit"
+                       HorizontalOptions="Fill" VerticalOptions="Fill"
+                       InputTransparent="True" />
+                <VerticalStackLayout x:Name="PreviewPlaceholder"
+                                     VerticalOptions="Center" HorizontalOptions="Center"
+                                     InputTransparent="True">
                     <Label Text="Future landscape preview area" FontSize="24"
                            HorizontalTextAlignment="Center" />
                     <Label Text="Tap to inspect local preview coordinates."

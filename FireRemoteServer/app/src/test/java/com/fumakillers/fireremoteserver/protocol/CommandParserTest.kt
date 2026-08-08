@@ -35,6 +35,15 @@ class CommandParserTest {
     }
 
     @Test
+    fun parsesPreviewRequest() {
+        val command = CommandParser.parse(
+            """{"version":1,"type":"previewRequest","requestId":"preview-1"}""",
+        ) as RemoteCommand.PreviewRequest
+
+        assertEquals("preview-1", command.requestId)
+    }
+
+    @Test
     fun rejectsUnsupportedVersion() {
         assertThrows(CommandParseException::class.java) {
             CommandParser.parse("""{"version":2,"type":"ping"}""")

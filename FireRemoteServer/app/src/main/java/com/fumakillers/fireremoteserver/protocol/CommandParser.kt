@@ -27,6 +27,7 @@ object CommandParser {
             "back" -> RemoteCommand.Back(requestId)
             "home" -> RemoteCommand.Home(requestId)
             "recents" -> RemoteCommand.Recents(requestId)
+            "previewRequest" -> RemoteCommand.PreviewRequest(requestId)
             "longPress" -> RemoteCommand.LongPress(
                 x = requiredCoordinate(json, "x"),
                 y = requiredCoordinate(json, "y"),

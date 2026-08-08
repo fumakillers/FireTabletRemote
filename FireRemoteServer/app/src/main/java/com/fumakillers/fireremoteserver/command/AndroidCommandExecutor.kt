@@ -12,6 +12,7 @@ class AndroidCommandExecutor(
         is RemoteCommand.Recents -> executeGlobalAction(AndroidGlobalAction.RECENTS, "Recents", "recents")
         is RemoteCommand.Tap,
         is RemoteCommand.LongPress,
+        is RemoteCommand.PreviewRequest,
         -> CommandResult(false, "Command parsed; Android operation is not implemented yet")
     }
 

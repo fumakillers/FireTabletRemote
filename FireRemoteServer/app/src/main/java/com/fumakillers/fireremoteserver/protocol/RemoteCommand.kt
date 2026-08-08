@@ -8,6 +8,7 @@ sealed interface RemoteCommand {
     data class Back(override val requestId: String?) : RemoteCommand
     data class Home(override val requestId: String?) : RemoteCommand
     data class Recents(override val requestId: String?) : RemoteCommand
+    data class PreviewRequest(override val requestId: String?) : RemoteCommand
     data class LongPress(
         val x: Int,
         val y: Int,

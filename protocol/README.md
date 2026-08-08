@@ -4,7 +4,7 @@
 
 - WebSocket text frames containing one UTF-8 JSON object
 - Server endpoint: `ws://<fire-tablet-ip>:8080/ws`
-- One command per frame and one `result` response per command
+- One request per frame and one correlated response per request
 - Intended only for a trusted LAN in v1; authentication, TLS, discovery, and batching are out of scope
 
 ## Common command fields
@@ -12,7 +12,7 @@
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | `version` | integer | yes | Protocol version. The initial value is `1`. |
-| `type` | string | yes | `ping`, `tap`, `back`, `home`, `recents`, or `longPress` |
+| `type` | string | yes | `ping`, `tap`, `back`, `home`, `recents`, `longPress`, or `previewRequest` |
 | `requestId` | string | no | Caller-generated correlation ID. Returned unchanged when accepted by the parser. |
 
 Unknown command types or unsupported versions are rejected. Additional unknown fields may be ignored so a compatible sender can be extended later.
@@ -59,6 +59,14 @@ Unknown command types or unsupported versions are rejected. Additional unknown f
 {"version":1,"type":"longPress","requestId":"hold-1","x":500,"y":300,"durationMs":1000}
 ```
 
+### previewRequest
+
+Requests one low-resolution screenshot. The Controller sends a new request only after the previous request has completed and the preview interval has elapsed.
+
+```json
+{"version":1,"type":"previewRequest","requestId":"preview-123"}
+```
+
 ## Result
 
 The server responds after parsing and dispatching a command. A `success` value of `false` may mean either invalid input or an operation that is not implemented/available.
@@ -68,3 +76,32 @@ The server responds after parsing and dispatching a command. A `success` value o
 ```
 
 The current Server executes `ping` and, while its AccessibilityService is connected, `back`, `home`, and `recents`. It parses `tap` and `longPress`, then returns `success: false` because gesture execution is intentionally not implemented yet.
+
+## Preview responses
+
+Successful `previewRequest` calls return a JPEG Base64-encoded in a JSON text frame. `width` and `height` are the encoded image dimensions; aspect ratio is preserved and the longest edge is at most 640 pixels.
+
+```json
+{
+  "version": 1,
+  "type": "previewFrame",
+  "requestId": "preview-123",
+  "mimeType": "image/jpeg",
+  "width": 640,
+  "height": 400,
+  "data": "<base64>"
+}
+```
+
+Capture failures use a dedicated response so they are not confused with command results.
+
+```json
+{
+  "version": 1,
+  "type": "previewError",
+  "requestId": "preview-123",
+  "message": "Accessibility service is not connected"
+}
+```
+
+Protocol v1 uses WebSocket text frames and Base64 for simplicity. Binary frames, streaming, and secure-content bypasses are out of scope.

@@ -9,6 +9,7 @@ class FireRemoteAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         AccessibilityServiceBridge.connect(this)
+        AccessibilityScreenshotGateway.connect(this)
         Log.i(TAG, "Accessibility service connected")
     }
 
@@ -20,12 +21,14 @@ class FireRemoteAccessibilityService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         AccessibilityServiceBridge.disconnect(this)
+        AccessibilityScreenshotGateway.disconnect(this)
         Log.i(TAG, "Accessibility service disconnected")
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
         AccessibilityServiceBridge.disconnect(this)
+        AccessibilityScreenshotGateway.disconnect(this)
         Log.i(TAG, "Accessibility service destroyed")
         super.onDestroy()
     }

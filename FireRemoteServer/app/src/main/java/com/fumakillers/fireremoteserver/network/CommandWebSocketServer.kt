@@ -31,8 +31,20 @@ class CommandWebSocketServer(
     }
 
     override fun onMessage(connection: WebSocket, message: String) {
-        Log.i(TAG, "Message: $message")
-        connection.send(dispatcher.dispatch(message))
+        if (message.contains("\"type\":\"previewRequest\"")) {
+            Log.d(PREVIEW_TAG, "previewRequest received")
+        } else {
+            Log.i(TAG, "Message: $message")
+        }
+        dispatcher.dispatch(message) { response ->
+            if (connection.isOpen) {
+                try {
+                    connection.send(response)
+                } catch (error: RuntimeException) {
+                    Log.e(TAG, "Could not send WebSocket response", error)
+                }
+            }
+        }
     }
 
     override fun onError(connection: WebSocket?, error: Exception) {
@@ -46,5 +58,6 @@ class CommandWebSocketServer(
 
     private companion object {
         const val TAG = "FireRemoteWebSocket"
+        const val PREVIEW_TAG = "FireRemotePreview"
     }
 }

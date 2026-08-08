@@ -10,7 +10,7 @@
                     <Label Text="Fire Remote Controller" FontAttributes="Bold" FontSize="24"
                            SemanticProperties.HeadingLevel="Level1" />
                     <Label Text="Server IP" />
-                    <Entry x:Name="ServerIpEntry" Text="192.168.1.100" Keyboard="Url"
+                    <Entry x:Name="ServerIpEntry" Text="192.168.196.202" Keyboard="Url"
                            ClearButtonVisibility="WhileEditing"
                            SemanticProperties.Hint="Fire Tablet IP address" />
                     <Label Text="Port" />

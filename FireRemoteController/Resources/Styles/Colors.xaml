@@ -3,6 +3,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
     <Color x:Key="Primary">#6750A4</Color>
     <Color x:Key="PrimaryDark">#D0BCFF</Color>
+    <Color x:Key="ButtonPressedLight">#3F2A78</Color>
+    <Color x:Key="ButtonPressedDark">#6750A4</Color>
+    <Color x:Key="ButtonDisabledLight">#D0CDD5</Color>
+    <Color x:Key="ButtonDisabledDark">#49454F</Color>
+    <Color x:Key="ButtonDisabledTextLight">#6F6B73</Color>
+    <Color x:Key="ButtonDisabledTextDark">#CAC4D0</Color>
     <Color x:Key="PageLight">#FFFBFE</Color>
     <Color x:Key="PageDark">#1C1B1F</Color>
     <Color x:Key="TextLight">#1C1B1F</Color>

@@ -3,24 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FireRemoteController.MainPage"
              Title="Fire Remote Controller">
-    <Grid Padding="24" ColumnDefinitions="320,*" ColumnSpacing="24" RowDefinitions="*">
-        <VerticalStackLayout Grid.Column="0" Spacing="12" VerticalOptions="Center">
-            <Label Text="Fire Remote Controller" FontAttributes="Bold" FontSize="24"
-                   SemanticProperties.HeadingLevel="Level1" />
-            <Label Text="Server IP" />
-            <Entry x:Name="ServerIpEntry" Text="192.168.1.100" Keyboard="Url"
-                   ClearButtonVisibility="WhileEditing"
-                   SemanticProperties.Hint="Fire Tablet IP address" />
-            <Label Text="Port" />
-            <Entry x:Name="PortEntry" Text="8080" Keyboard="Numeric" MaxLength="5" />
-            <HorizontalStackLayout Spacing="8">
-                <Button x:Name="ConnectButton" Text="Connect" Clicked="OnConnectClicked" />
-                <Button x:Name="DisconnectButton" Text="Disconnect" IsEnabled="False"
-                        Clicked="OnDisconnectClicked" />
-            </HorizontalStackLayout>
-            <Label Text="Status" FontAttributes="Bold" />
-            <Label x:Name="StatusLabel" Text="Disconnected" LineBreakMode="WordWrap" />
-        </VerticalStackLayout>
+    <Grid Padding="24,12" ColumnDefinitions="320,*" ColumnSpacing="24" RowDefinitions="*">
+        <Grid Grid.Column="0" RowDefinitions="*,Auto" RowSpacing="8">
+            <ScrollView Grid.Row="0" VerticalScrollBarVisibility="Default">
+                <VerticalStackLayout Spacing="6" VerticalOptions="Start">
+                    <Label Text="Fire Remote Controller" FontAttributes="Bold" FontSize="24"
+                           SemanticProperties.HeadingLevel="Level1" />
+                    <Label Text="Server IP" />
+                    <Entry x:Name="ServerIpEntry" Text="192.168.1.100" Keyboard="Url"
+                           ClearButtonVisibility="WhileEditing"
+                           SemanticProperties.Hint="Fire Tablet IP address" />
+                    <Label Text="Port" />
+                    <Entry x:Name="PortEntry" Text="8080" Keyboard="Numeric" MaxLength="5" />
+                    <HorizontalStackLayout Spacing="8">
+                        <Button x:Name="ConnectButton" Text="Connect" Clicked="OnConnectClicked" />
+                        <Button x:Name="DisconnectButton" Text="Disconnect" IsEnabled="False"
+                                Clicked="OnDisconnectClicked" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+            <Label x:Name="StatusLabel" Grid.Row="1" Text="Status: Disconnected"
+                   FontAttributes="Bold" LineBreakMode="WordWrap" />
+        </Grid>
 
         <Border Grid.Column="1" Padding="24" StrokeShape="RoundRectangle 12" StrokeThickness="1">
             <Grid RowDefinitions="*,Auto" RowSpacing="16">

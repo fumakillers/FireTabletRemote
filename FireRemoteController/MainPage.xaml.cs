@@ -19,7 +19,7 @@ public partial class MainPage : ContentPage
 	{
 		if (!int.TryParse(PortEntry.Text, out var port) || port is < 1 or > 65535)
 		{
-			StatusLabel.Text = "Port must be between 1 and 65535.";
+			SetStatus("Port must be between 1 and 65535.");
 			return;
 		}
 
@@ -30,7 +30,7 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception error)
 		{
-			StatusLabel.Text = $"Connection failed: {error.Message}";
+			SetStatus($"Connection failed: {error.Message}");
 		}
 		finally
 		{
@@ -47,7 +47,7 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception error)
 		{
-			StatusLabel.Text = $"Disconnect failed: {error.Message}";
+			SetStatus($"Disconnect failed: {error.Message}");
 		}
 		finally
 		{
@@ -61,11 +61,11 @@ public partial class MainPage : ContentPage
 		{
 			var requestId = Guid.NewGuid().ToString("N");
 			await client.SendAsync(RemoteCommandJson.CreatePing(requestId));
-			StatusLabel.Text = $"Ping sent ({requestId[..8]}).";
+			SetStatus($"Ping sent ({requestId[..8]}).");
 		}
 		catch (Exception error)
 		{
-			StatusLabel.Text = $"Send failed: {error.Message}";
+			SetStatus($"Send failed: {error.Message}");
 		}
 	}
 
@@ -73,7 +73,7 @@ public partial class MainPage : ContentPage
 	{
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			StatusLabel.Text = connected ? "Connected" : "Disconnected";
+			SetStatus(connected ? "Connected" : "Disconnected");
 			ConnectButton.IsEnabled = !connected;
 			DisconnectButton.IsEnabled = connected;
 			SendPingButton.IsEnabled = connected;
@@ -82,7 +82,12 @@ public partial class MainPage : ContentPage
 
 	private void OnMessageReceived(object? sender, string message)
 	{
-		MainThread.BeginInvokeOnMainThread(() => StatusLabel.Text = $"Received: {message}");
+		MainThread.BeginInvokeOnMainThread(() => SetStatus($"Received: {message}"));
+	}
+
+	private void SetStatus(string status)
+	{
+		StatusLabel.Text = $"Status: {status}";
 	}
 
 	private void SetBusy(bool busy)

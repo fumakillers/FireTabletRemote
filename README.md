@@ -1,0 +1,2 @@
+# FireTabletRemote
+Android端末からFireのタップ操作を行う

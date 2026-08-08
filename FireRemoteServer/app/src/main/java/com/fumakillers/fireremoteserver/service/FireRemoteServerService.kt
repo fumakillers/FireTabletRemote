@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import com.fumakillers.fireremoteserver.MainActivity
+import com.fumakillers.fireremoteserver.accessibility.AccessibilityServiceBridge
 import com.fumakillers.fireremoteserver.command.AndroidCommandExecutor
 import com.fumakillers.fireremoteserver.command.CommandDispatcher
 import com.fumakillers.fireremoteserver.network.CommandWebSocketServer
@@ -34,7 +35,7 @@ class FireRemoteServerService : Service() {
 
         server = CommandWebSocketServer(
             DEFAULT_PORT,
-            CommandDispatcher(AndroidCommandExecutor()),
+            CommandDispatcher(AndroidCommandExecutor(AccessibilityServiceBridge)),
         ).also { it.start() }
     }
 

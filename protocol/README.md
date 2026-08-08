@@ -55,4 +55,4 @@ The server responds after parsing and dispatching a command. A `success` value o
 {"version":1,"type":"result","requestId":"check-1","success":true,"message":"pong"}
 ```
 
-The current Server executes `ping` only. It parses and logs `tap`, `back`, and `longPress`, then returns `success: false` because Android gesture execution is intentionally not implemented yet.
+The current Server executes `ping` and, while its AccessibilityService is connected, `back`. It parses `tap` and `longPress`, then returns `success: false` because gesture execution is intentionally not implemented yet.

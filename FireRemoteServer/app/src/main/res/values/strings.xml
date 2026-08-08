@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Fire Remote Server</string>
-    <string name="accessibility_description">Receives commands from Fire Remote Controller. Gesture execution is not implemented yet.</string>
+    <string name="accessibility_description">Performs remote back actions. Tap and long-press gestures are not implemented yet.</string>
 </resources>

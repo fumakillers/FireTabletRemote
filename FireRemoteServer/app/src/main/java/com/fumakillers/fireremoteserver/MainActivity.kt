@@ -8,9 +8,12 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.fumakillers.fireremoteserver.accessibility.AccessibilityServiceBridge
 import com.fumakillers.fireremoteserver.service.FireRemoteServerService
 
 class MainActivity : Activity() {
+    private lateinit var accessibilityStatus: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -22,6 +25,8 @@ class MainActivity : Activity() {
                 text = "Fire Remote Server\nWebSocket: ws://<tablet-ip>:${FireRemoteServerService.DEFAULT_PORT}"
                 textSize = 22f
             })
+            accessibilityStatus = TextView(context)
+            addView(accessibilityStatus)
             addView(Button(context).apply {
                 text = "Start server"
                 setOnClickListener {
@@ -39,10 +44,26 @@ class MainActivity : Activity() {
                 setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
             }, matchWidth())
             addView(TextView(context).apply {
-                text = "Received commands are logged with tags FireRemoteWebSocket and FireRemoteCommand. Gesture execution is not implemented yet."
+                text = "Received commands are logged with tags FireRemoteWebSocket and FireRemoteCommand. Tap and long-press gestures are not implemented yet."
             })
         }
         setContentView(content)
+        updateAccessibilityStatus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::accessibilityStatus.isInitialized) {
+            updateAccessibilityStatus()
+        }
+    }
+
+    private fun updateAccessibilityStatus() {
+        accessibilityStatus.text = if (AccessibilityServiceBridge.isConnected) {
+            "Accessibility: Connected"
+        } else {
+            "Accessibility: Not connected"
+        }
     }
 
     private fun matchWidth() = LinearLayout.LayoutParams(

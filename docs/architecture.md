@@ -16,8 +16,11 @@ FireRemoteServer (Kotlin, landscape)
   CommandExecutor
              |
              v
+  AccessibilityServiceBridge
+             |
+             v
   FireRemoteAccessibilityService
-  (gesture/global action wiring is not implemented yet)
+  (`back` global action is implemented; gestures are not)
 ```
 
 ## Boundaries
@@ -25,7 +28,8 @@ FireRemoteServer (Kotlin, landscape)
 - `protocol/README.md` is the implementation-neutral contract. Kotlin and C# define their own small representations.
 - WebSocket classes transport complete JSON messages; they do not know preview sizes or transform coordinates.
 - `CommandParser` validates wire input. `CommandDispatcher` invokes a replaceable `CommandExecutor`.
-- `AndroidCommandExecutor` is the future seam for gestures and global actions. It currently logs parsed commands and only answers `ping`.
+- `AndroidCommandExecutor` depends on the small `AndroidActionGateway` boundary. The process-local `AccessibilityServiceBridge` registers the system-created service while connected and clears the exact instance on unbind/destroy.
+- `ping` does not use AccessibilityService. `back` uses `GLOBAL_ACTION_BACK`; `tap` and `longPress` remain unimplemented.
 - The Controller keeps command JSON creation separate from `ClientWebSocket`, leaving future preview mapping outside both.
 - `tools/MockWebSocketServer` lets the Controller connect without a Fire Tablet or Server APK.
 

@@ -23,7 +23,7 @@ tools/MockWebSocketServer/ Controller 単体確認用 .NET mock
 
 Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ実行します。画面の **Start server** を押すと `ws://<tablet-ip>:8080/ws` で待ち受けます。受信内容は Logcat の `FireRemoteWebSocket` と `FireRemoteCommand` タグで確認できます。
 
-`ping` は `pong` を返します。`tap` / `back` / `longPress` は JSON の解析とログ出力まで実装済みですが、AccessibilityService を使った実操作は未実装です。Accessibility 設定への導線と Service の骨格のみ用意しています。
+`ping` は `pong` を返します。`back` は接続済みの AccessibilityService を通じてAndroidの「戻る」を実行します。`tap` / `longPress` はJSONの解析まで実装済みですが、gesture実行は未実装です。
 
 コマンド解析テスト:
 
@@ -54,6 +54,22 @@ Visual Studio または `dotnet build -t:Run` から Android 実機へ配置し�
 
 `{"version":1,"type":"result",..."success":true,"message":"pong"}` が返り、Logcat に接続・受信・解析結果が出れば Server 側の最小経路を確認できています。
 
+### Fire HD 10でbackを確認する
+
+1. FireRemoteServerのDebug APKをFire HD 10へインストールして起動します。
+2. **Open Accessibility settings** を押します。
+3. Accessibility設定で **Fire Remote Accessibility** を有効にします。
+4. アプリへ戻り、`Accessibility: Connected` と表示されることを確認します。
+5. **Start server** を押します。
+6. 同一LAN上のWebSocket Clientから `ws://<tablet-ip>:8080/ws` へ接続します。
+7. 次のCommandを送信し、Tablet上で実際に「戻る」が発生することと、`success: true` のresultを確認します。
+
+```json
+{"version":1,"type":"back","requestId":"back-test-1"}
+```
+
+Fire OSのバージョンによってAccessibility設定の名称や階層が異なる場合があります。その場合は設定画面内の「ユーザー補助」またはインストール済みサービスに相当する項目から **Fire Remote Accessibility** を有効にしてください。未接続時やAndroid APIが操作を受理しなかった場合は、Serverはクラッシュせず `success: false` と理由を返します。
+
 ### Controller 単体
 
 PC 上で依存パッケージ不要の Mock Server を起動します。
@@ -66,4 +82,4 @@ Controller から PC の LAN IP（Android Emulator なら通常 `10.0.2.2`）、
 
 ## 現在の開発段階
 
-初期基盤です。Protocol、WebSocket 送受信、Command 解析、Foreground Service、AccessibilityService の責務境界を用意しています。画面プレビュー、座標変換、Android gesture/global action、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。
+初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback操作を実装しています。画面プレビュー、座標変換、tap/longPress gesture、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。

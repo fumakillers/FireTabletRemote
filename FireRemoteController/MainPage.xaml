@@ -34,25 +34,12 @@
                     HorizontalOptions="Center"
                     SemanticProperties.Description="Connection settings"
                     Clicked="OnSettingsClicked" />
-            <Border x:Name="ConnectionStateIndicator" Grid.Row="1"
-                    WidthRequest="40" HeightRequest="40"
-                    HorizontalOptions="Center" VerticalOptions="Center"
-                    BackgroundColor="#9E9E9E" Stroke="#616161" StrokeThickness="1"
-                    StrokeShape="RoundRectangle 20"
-                    SemanticProperties.Description="Disconnected" />
-            <Grid Grid.Row="1" WidthRequest="40" HeightRequest="40"
-                  HorizontalOptions="Center" VerticalOptions="Center"
-                  InputTransparent="True">
-                <Label x:Name="ConnectionStateGlyph" Text="&#x2194;" FontSize="20"
-                       TextColor="White" FontAttributes="Bold"
-                       HorizontalOptions="Center" VerticalOptions="Center"
-                       InputTransparent="True" />
-                <Label x:Name="ConnectionStateBadge" Text="&#x00D7;" FontSize="13"
-                       TextColor="White" FontAttributes="Bold"
-                       Margin="0,0,5,2"
-                       HorizontalOptions="End" VerticalOptions="End"
-                       InputTransparent="True" />
-            </Grid>
+            <Image x:Name="ConnectionStateIndicator" Grid.Row="1"
+                   Source="wifi_disconnected.svg"
+                   WidthRequest="40" HeightRequest="40" Aspect="AspectFit"
+                   HorizontalOptions="Center" VerticalOptions="Center"
+                   InputTransparent="True"
+                   SemanticProperties.Description="Disconnected" />
             <Button x:Name="BackButton" Grid.Row="2" Text="&#x25C0;" FontSize="22"
                     IsEnabled="False" WidthRequest="56" HeightRequest="56"
                     HorizontalOptions="Center" VerticalOptions="Center"

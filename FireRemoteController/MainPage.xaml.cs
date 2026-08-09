@@ -593,27 +593,19 @@ public partial class MainPage : ContentPage
 
 	private void SetConnectionError()
 	{
-		SetConnectionIndicator("Connection error", "!", "#EF5350", "#B71C1C");
+		SetConnectionIndicator("Connection error", "wifi_error.svg");
 	}
 
 	private void SetConnectionState(string status, bool connected)
 	{
 		SetConnectionIndicator(
 			status,
-			connected ? "✓" : "×",
-			connected ? "#42A5F5" : "#9E9E9E",
-			connected ? "#1565C0" : "#616161");
+			connected ? "wifi_connected.svg" : "wifi_disconnected.svg");
 	}
 
-	private void SetConnectionIndicator(
-		string description,
-		string badge,
-		string fillColor,
-		string strokeColor)
+	private void SetConnectionIndicator(string description, string imageSource)
 	{
-		ConnectionStateIndicator.BackgroundColor = Color.FromArgb(fillColor);
-		ConnectionStateIndicator.Stroke = Color.FromArgb(strokeColor);
-		ConnectionStateBadge.Text = badge;
+		ConnectionStateIndicator.Source = imageSource;
 		SemanticProperties.SetDescription(ConnectionStateIndicator, description);
 	}
 

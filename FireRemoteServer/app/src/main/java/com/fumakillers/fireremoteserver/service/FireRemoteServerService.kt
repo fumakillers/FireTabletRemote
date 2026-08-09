@@ -21,6 +21,7 @@ class FireRemoteServerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        ServerRuntimeState.store.update(ServerState.STARTING)
         createNotificationChannel()
         val openApp = PendingIntent.getActivity(
             this,
@@ -36,15 +37,11 @@ class FireRemoteServerService : Service() {
             .build()
         startForeground(NOTIFICATION_ID, notification)
 
-        val provider = AccessibilityScreenshotProvider(AccessibilityScreenshotGateway)
-        previewProvider = provider
-        server = CommandWebSocketServer(
-            DEFAULT_PORT,
-            CommandDispatcher(
-                AndroidCommandExecutor(AccessibilityServiceBridge, AccessibilityServiceBridge),
-                provider,
-            ),
-        ).also { it.start() }
+        startWebSocketServer()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
@@ -53,15 +50,44 @@ class FireRemoteServerService : Service() {
         } catch (error: InterruptedException) {
             Thread.currentThread().interrupt()
             Log.w(TAG, "Interrupted while stopping WebSocket server", error)
+        } catch (error: RuntimeException) {
+            Log.e(TAG, "Could not stop WebSocket server cleanly", error)
         } finally {
             server = null
             previewProvider?.close()
             previewProvider = null
+            ServerRuntimeState.store.update(ServerState.STOPPED)
         }
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun startWebSocketServer() {
+        val provider = AccessibilityScreenshotProvider(AccessibilityScreenshotGateway)
+        previewProvider = provider
+        val webSocketServer = CommandWebSocketServer(
+            DEFAULT_PORT,
+            CommandDispatcher(
+                AndroidCommandExecutor(AccessibilityServiceBridge, AccessibilityServiceBridge),
+                provider,
+            ),
+            onListening = {
+                ServerRuntimeState.store.update(ServerState.RUNNING)
+            },
+            onFatalError = { error ->
+                Log.e(TAG, "WebSocket server failed", error)
+                ServerRuntimeState.store.update(ServerState.ERROR)
+            },
+        )
+        server = webSocketServer
+        try {
+            webSocketServer.start()
+        } catch (error: RuntimeException) {
+            Log.e(TAG, "Could not start WebSocket server", error)
+            ServerRuntimeState.store.update(ServerState.ERROR)
+        }
+    }
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(

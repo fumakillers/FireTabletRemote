@@ -593,21 +593,27 @@ public partial class MainPage : ContentPage
 
 	private void SetConnectionError()
 	{
-		SetConnectionIndicator("Error", "#EF5350", "#B71C1C");
+		SetConnectionIndicator("Connection error", "!", "#EF5350", "#B71C1C");
 	}
 
 	private void SetConnectionState(string status, bool connected)
 	{
 		SetConnectionIndicator(
 			status,
+			connected ? "✓" : "×",
 			connected ? "#42A5F5" : "#9E9E9E",
 			connected ? "#1565C0" : "#616161");
 	}
 
-	private void SetConnectionIndicator(string description, string fillColor, string strokeColor)
+	private void SetConnectionIndicator(
+		string description,
+		string badge,
+		string fillColor,
+		string strokeColor)
 	{
 		ConnectionStateIndicator.BackgroundColor = Color.FromArgb(fillColor);
 		ConnectionStateIndicator.Stroke = Color.FromArgb(strokeColor);
+		ConnectionStateBadge.Text = badge;
 		SemanticProperties.SetDescription(ConnectionStateIndicator, description);
 	}
 

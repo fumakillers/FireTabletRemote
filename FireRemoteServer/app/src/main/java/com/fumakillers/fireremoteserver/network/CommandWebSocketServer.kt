@@ -12,6 +12,8 @@ import java.net.InetSocketAddress
 class CommandWebSocketServer(
     port: Int,
     private val dispatcher: CommandDispatcher,
+    private val onListening: () -> Unit = {},
+    private val onFatalError: (Exception) -> Unit = {},
 ) : WebSocketServer(InetSocketAddress("0.0.0.0", port)) {
     override fun onWebsocketHandshakeReceivedAsServer(
         connection: WebSocket,
@@ -49,11 +51,15 @@ class CommandWebSocketServer(
 
     override fun onError(connection: WebSocket?, error: Exception) {
         Log.e(TAG, "WebSocket error", error)
+        if (connection == null) {
+            onFatalError(error)
+        }
     }
 
     override fun onStart() {
         Log.i(TAG, "WebSocket server listening on port $port")
         connectionLostTimeout = 30
+        onListening()
     }
 
     private companion object {

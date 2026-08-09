@@ -2,6 +2,22 @@
 
 アームなどに固定したFire Tabletを、Androidスマートフォンから同一LAN経由で操作するためのリモートコントローラーです。ベッドなどFire Tabletから離れた場所から、YouTubeをはじめとするアプリを操作する用途を想定しています。
 
+## Screenshots
+
+### Controller Preview
+
+![Fire Remote Controller Preview](assets/screenshots/controller-preview.png)
+
+Fire Tabletの現在画面を低解像度Previewとして表示し、Preview上からTap / Long Press / Swipeを操作できます。右側ツールバーからBack / Home / RecentsとConnection Settingsを操作します。
+
+### Controller Connection Settings
+
+![Fire Remote Controller Connection Settings](assets/screenshots/controller-settings.png)
+
+### Fire Remote Server
+
+![Fire Remote Server](assets/screenshots/server.png)
+
 ## Features
 
 - Fire Tablet画面の低解像度Preview
@@ -122,6 +138,7 @@ Protocol v1には認証とTLSがありません。通信には平文WebSocket（
 FireRemoteServer/          Kotlin / Android server
 FireRemoteController/      .NET MAUI Android controller
 FireRemoteController.Tests/ Controller unit tests
+assets/screenshots/        README screenshots
 protocol/                  JSON WebSocket Protocol v1
 docs/                      Architecture notes
 tools/MockWebSocketServer/ Controller development mock server

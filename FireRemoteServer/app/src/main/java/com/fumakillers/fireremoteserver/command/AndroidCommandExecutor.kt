@@ -18,23 +18,60 @@ class AndroidCommandExecutor(
             is RemoteCommand.Recents -> callback(
                 executeGlobalAction(AndroidGlobalAction.RECENTS, "Recents", "recents"),
             )
-            is RemoteCommand.Tap -> gestureGateway.performTap(command.x, command.y) { result ->
-                callback(tapResult(result))
-            }
-            is RemoteCommand.LongPress,
-            is RemoteCommand.PreviewRequest,
-            -> callback(CommandResult(false, "Command parsed; Android operation is not implemented yet"))
+            is RemoteCommand.Tap -> executeGesture(
+                AndroidGesture.Tap(command.x, command.y),
+                "Tap",
+                "tap",
+                callback,
+            )
+            is RemoteCommand.LongPress -> executeGesture(
+                AndroidGesture.LongPress(command.x, command.y, command.durationMs),
+                "Long press",
+                "long press",
+                callback,
+            )
+            is RemoteCommand.Swipe -> executeGesture(
+                AndroidGesture.Swipe(
+                    command.startX,
+                    command.startY,
+                    command.endX,
+                    command.endY,
+                    command.durationMs,
+                ),
+                "Swipe",
+                "swipe",
+                callback,
+            )
+            is RemoteCommand.PreviewRequest ->
+                callback(CommandResult(false, "Preview requests are handled separately"))
         }
     }
 
-    private fun tapResult(result: AndroidGestureResult): CommandResult = when (result) {
-        AndroidGestureResult.Completed -> CommandResult(true, "Tap performed")
+    private fun executeGesture(
+        gesture: AndroidGesture,
+        displayName: String,
+        protocolName: String,
+        callback: (CommandResult) -> Unit,
+    ) {
+        gestureGateway.perform(gesture) { result ->
+            callback(gestureResult(result, displayName, protocolName))
+        }
+    }
+
+    private fun gestureResult(
+        result: AndroidGestureResult,
+        displayName: String,
+        protocolName: String,
+    ): CommandResult = when (result) {
+        AndroidGestureResult.Completed -> CommandResult(true, "$displayName performed")
         AndroidGestureResult.ServiceNotConnected ->
             CommandResult(false, "Accessibility service is not connected")
-        AndroidGestureResult.Rejected -> CommandResult(false, "Android rejected the tap gesture")
-        AndroidGestureResult.Cancelled -> CommandResult(false, "Tap gesture was cancelled")
-        AndroidGestureResult.InvalidCoordinates -> CommandResult(false, "Tap coordinates are outside the screen")
-        AndroidGestureResult.Failed -> CommandResult(false, "Tap gesture failed")
+        AndroidGestureResult.Rejected ->
+            CommandResult(false, "Android rejected the $protocolName gesture")
+        AndroidGestureResult.Cancelled -> CommandResult(false, "$displayName gesture was cancelled")
+        AndroidGestureResult.InvalidCoordinates ->
+            CommandResult(false, "$displayName coordinates are outside the screen")
+        AndroidGestureResult.Failed -> CommandResult(false, "$displayName gesture failed")
     }
 
     private fun executeGlobalAction(

@@ -51,4 +51,22 @@ public static class RemoteCommandJson
 			y,
 			durationMs
 		});
+
+	public static string CreateSwipe(
+		int startX,
+		int startY,
+		int endX,
+		int endY,
+		int durationMs,
+		string? requestId = null) => JsonSerializer.Serialize(new
+		{
+			version = 1,
+			type = "swipe",
+			requestId,
+			startX,
+			startY,
+			endX,
+			endY,
+			durationMs
+		});
 }

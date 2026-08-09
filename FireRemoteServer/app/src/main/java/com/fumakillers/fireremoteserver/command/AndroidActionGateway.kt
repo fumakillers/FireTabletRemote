@@ -1,5 +1,7 @@
 package com.fumakillers.fireremoteserver.command
 
+const val TAP_DURATION_MS = 75L
+
 fun interface AndroidActionGateway {
     fun perform(action: AndroidGlobalAction): AndroidActionResult
 }
@@ -18,7 +20,29 @@ sealed interface AndroidActionResult {
 }
 
 fun interface AndroidGestureGateway {
-    fun performTap(x: Int, y: Int, callback: (AndroidGestureResult) -> Unit)
+    fun perform(gesture: AndroidGesture, callback: (AndroidGestureResult) -> Unit)
+}
+
+sealed interface AndroidGesture {
+    val durationMs: Long
+
+    data class Tap(val x: Int, val y: Int) : AndroidGesture {
+        override val durationMs: Long = TAP_DURATION_MS
+    }
+
+    data class LongPress(
+        val x: Int,
+        val y: Int,
+        override val durationMs: Long,
+    ) : AndroidGesture
+
+    data class Swipe(
+        val startX: Int,
+        val startY: Int,
+        val endX: Int,
+        val endY: Int,
+        override val durationMs: Long,
+    ) : AndroidGesture
 }
 
 sealed interface AndroidGestureResult {

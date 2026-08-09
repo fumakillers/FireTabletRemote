@@ -1,6 +1,7 @@
 using FireRemoteController.Protocol;
 using FireRemoteController.Preview;
 using FireRemoteController.Services;
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Maui.Storage;
 
@@ -12,13 +13,25 @@ public partial class MainPage : ContentPage
 	private const string DefaultPort = "8080";
 	private const string ServerIpPreferenceKey = "connection.serverIp";
 	private const string PortPreferenceKey = "connection.port";
+	private const double MinimumSwipeDistance = 24d;
+	private const int LongPressDurationMs = 600;
+	private const int MinimumSwipeDurationMs = 100;
+	private const int MaximumSwipeDurationMs = 2_000;
 	private static readonly TimeSpan PreviewInterval = TimeSpan.FromSeconds(1);
+	private static readonly TimeSpan LongPressThreshold = TimeSpan.FromMilliseconds(LongPressDurationMs);
 	private readonly IRemoteWebSocketClient client;
+	private readonly PreviewGestureClassifier previewGestureClassifier =
+		new(LongPressThreshold, MinimumSwipeDistance);
 	private readonly object previewLoopLock = new();
 	private CancellationTokenSource? previewLoopCancellation;
 	private TaskCompletionSource? pendingPreviewResponse;
 	private string? pendingPreviewRequestId;
 	private PreviewFrame? latestPreviewFrame;
+	private PreviewFrame? gesturePreviewFrame;
+	private CancellationTokenSource? longPressCancellation;
+	private long gestureStartTimestamp;
+	private double gesturePreviewWidth;
+	private double gesturePreviewHeight;
 
 	public MainPage(IRemoteWebSocketClient client)
 	{
@@ -39,6 +52,7 @@ public partial class MainPage : ContentPage
 
 	protected override void OnDisappearing()
 	{
+		CancelPreviewGesture();
 		StopPreviewLoop();
 		base.OnDisappearing();
 	}
@@ -203,53 +217,221 @@ public partial class MainPage : ContentPage
 		}
 	}
 
-	private async void OnPreviewTapped(object? sender, TappedEventArgs e)
+	private void OnPreviewPointerPressed(object? sender, PointerEventArgs e)
 	{
 		var position = e.GetPosition(PreviewInputArea);
-		if (position is null)
+		if (position is null || HasMultiplePointers(e))
 		{
+			CancelPreviewGesture();
 			return;
 		}
 
 		if (!client.IsConnected)
 		{
-			SetStatus("Tap ignored: not connected");
+			SetStatus("Gesture ignored: not connected");
 			return;
 		}
 
 		var frame = latestPreviewFrame;
 		if (frame is null)
 		{
-			SetStatus("Tap ignored: preview is not available");
+			SetStatus("Gesture ignored: preview is not available");
 			return;
 		}
 
-		if (!PreviewCoordinateMapper.TryMapAspectFit(
-			PreviewInputArea.Width,
-			PreviewInputArea.Height,
-			frame.Width,
-			frame.Height,
-			frame.SourceWidth,
-			frame.SourceHeight,
-			position.Value.X,
-			position.Value.Y,
-			out var firePoint))
+		gesturePreviewWidth = PreviewInputArea.Width;
+		gesturePreviewHeight = PreviewInputArea.Height;
+		if (!TryMapPreviewPoint(frame, position.Value.X, position.Value.Y, false, out _))
 		{
-			SetStatus("Tap ignored: outside preview image");
+			SetStatus("Gesture ignored: outside preview image");
+			gesturePreviewWidth = 0;
+			gesturePreviewHeight = 0;
+			return;
+		}
+
+		CancelPreviewGesture();
+		gesturePreviewFrame = frame;
+		gesturePreviewWidth = PreviewInputArea.Width;
+		gesturePreviewHeight = PreviewInputArea.Height;
+		gestureStartTimestamp = Stopwatch.GetTimestamp();
+		previewGestureClassifier.Press(new PreviewGesturePoint(position.Value.X, position.Value.Y));
+		longPressCancellation = new CancellationTokenSource();
+		_ = DetectLongPressAsync(longPressCancellation);
+	}
+
+	private void OnPreviewPointerMoved(object? sender, PointerEventArgs e)
+	{
+		if (!previewGestureClassifier.IsActive)
+		{
+			return;
+		}
+
+		if (HasMultiplePointers(e))
+		{
+			CancelPreviewGesture();
+			return;
+		}
+
+		var position = e.GetPosition(PreviewInputArea);
+		if (position is null)
+		{
+			return;
+		}
+
+		previewGestureClassifier.Move(new PreviewGesturePoint(position.Value.X, position.Value.Y));
+		if (previewGestureClassifier.IsSwipeCandidate)
+		{
+			longPressCancellation?.Cancel();
+		}
+	}
+
+	private void OnPreviewPointerReleased(object? sender, PointerEventArgs e)
+	{
+		if (!previewGestureClassifier.IsActive || HasMultiplePointers(e))
+		{
+			CancelPreviewGesture();
+			return;
+		}
+
+		var position = e.GetPosition(PreviewInputArea);
+		if (position is null)
+		{
+			CancelPreviewGesture();
+			return;
+		}
+
+		longPressCancellation?.Cancel();
+		longPressCancellation?.Dispose();
+		longPressCancellation = null;
+		var decision = previewGestureClassifier.Release(
+			new PreviewGesturePoint(position.Value.X, position.Value.Y),
+			Stopwatch.GetElapsedTime(gestureStartTimestamp));
+		if (decision is not null)
+		{
+			_ = SendPreviewGestureAsync(decision.Value);
+		}
+	}
+
+	private void OnPreviewPointerExited(object? sender, PointerEventArgs e) => CancelPreviewGesture();
+
+	private async Task DetectLongPressAsync(CancellationTokenSource cancellation)
+	{
+		try
+		{
+			await Task.Delay(LongPressThreshold, cancellation.Token);
+			if (!ReferenceEquals(longPressCancellation, cancellation))
+			{
+				return;
+			}
+
+			var decision = previewGestureClassifier.LongPressThresholdElapsed(
+				Stopwatch.GetElapsedTime(gestureStartTimestamp));
+			if (decision is not null)
+			{
+				await SendPreviewGestureAsync(decision.Value);
+			}
+		}
+		catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+		{
+		}
+		finally
+		{
+			if (ReferenceEquals(longPressCancellation, cancellation))
+			{
+				longPressCancellation = null;
+			}
+			cancellation.Dispose();
+		}
+	}
+
+	private async Task SendPreviewGestureAsync(PreviewGestureDecision decision)
+	{
+		var frame = gesturePreviewFrame;
+		if (!client.IsConnected || frame is null)
+		{
+			SetStatus("Gesture ignored: connection or preview is unavailable");
+			return;
+		}
+
+		if (!TryMapPreviewPoint(frame, decision.Start.X, decision.Start.Y, false, out var start))
+		{
+			SetStatus("Gesture ignored: start is outside preview image");
 			return;
 		}
 
 		try
 		{
-			var requestId = $"tap-{Guid.NewGuid():N}";
-			await client.SendAsync(RemoteCommandJson.CreateTap(firePoint.X, firePoint.Y, requestId));
-			SetStatus($"Tap sent: x={firePoint.X}, y={firePoint.Y}");
+			switch (decision.Kind)
+			{
+				case PreviewGestureKind.Tap:
+					await client.SendAsync(RemoteCommandJson.CreateTap(
+						start.X, start.Y, $"tap-{Guid.NewGuid():N}"));
+					SetStatus($"Tap sent: x={start.X}, y={start.Y}");
+					break;
+				case PreviewGestureKind.LongPress:
+					await client.SendAsync(RemoteCommandJson.CreateLongPress(
+						start.X, start.Y, LongPressDurationMs, $"hold-{Guid.NewGuid():N}"));
+					SetStatus($"Long press sent: x={start.X}, y={start.Y}");
+					break;
+				case PreviewGestureKind.Swipe:
+					if (!TryMapPreviewPoint(frame, decision.End.X, decision.End.Y, true, out var end))
+					{
+						SetStatus("Swipe ignored: preview coordinates are unavailable");
+						return;
+					}
+					var durationMs = Math.Clamp(
+						(int)Math.Round(decision.Duration.TotalMilliseconds),
+						MinimumSwipeDurationMs,
+						MaximumSwipeDurationMs);
+					await client.SendAsync(RemoteCommandJson.CreateSwipe(
+						start.X, start.Y, end.X, end.Y, durationMs, $"swipe-{Guid.NewGuid():N}"));
+					SetStatus($"Swipe sent: ({start.X},{start.Y}) to ({end.X},{end.Y})");
+					break;
+			}
 		}
 		catch (Exception error)
 		{
-			SetStatus($"Tap failed: {error.Message}");
+			SetStatus($"Gesture failed: {error.Message}");
 			SetConnectionError();
 		}
+	}
+
+	private bool TryMapPreviewPoint(
+		PreviewFrame frame,
+		double x,
+		double y,
+		bool clamp,
+		out FireScreenPoint point)
+	{
+		return clamp
+			? PreviewCoordinateMapper.TryMapAspectFitClamped(
+				gesturePreviewWidth, gesturePreviewHeight,
+				frame.Width, frame.Height, frame.SourceWidth, frame.SourceHeight,
+				x, y, out point)
+			: PreviewCoordinateMapper.TryMapAspectFit(
+				gesturePreviewWidth, gesturePreviewHeight,
+				frame.Width, frame.Height, frame.SourceWidth, frame.SourceHeight,
+				x, y, out point);
+	}
+
+	private void CancelPreviewGesture()
+	{
+		previewGestureClassifier.Cancel();
+		longPressCancellation?.Cancel();
+		longPressCancellation?.Dispose();
+		longPressCancellation = null;
+		gesturePreviewFrame = null;
+		gesturePreviewWidth = 0;
+		gesturePreviewHeight = 0;
+	}
+
+	private static bool HasMultiplePointers(PointerEventArgs e)
+	{
+#if ANDROID
+		return e.PlatformArgs?.MotionEvent?.PointerCount > 1;
+#else
+		return false;
+#endif
 	}
 
 	private void OnConnectionChanged(object? sender, bool connected)
@@ -260,6 +442,7 @@ public partial class MainPage : ContentPage
 		}
 		else
 		{
+			CancelPreviewGesture();
 			StopPreviewLoop();
 		}
 

@@ -8,7 +8,10 @@
                 StrokeShape="RoundRectangle 12" StrokeThickness="1">
             <Grid x:Name="PreviewInputArea" BackgroundColor="Transparent">
                 <Grid.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnPreviewTapped" />
+                    <PointerGestureRecognizer PointerPressed="OnPreviewPointerPressed"
+                                              PointerMoved="OnPreviewPointerMoved"
+                                              PointerReleased="OnPreviewPointerReleased"
+                                              PointerExited="OnPreviewPointerExited" />
                 </Grid.GestureRecognizers>
                 <Image x:Name="PreviewImage" Aspect="AspectFit"
                        HorizontalOptions="Fill" VerticalOptions="Fill"

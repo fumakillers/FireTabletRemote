@@ -34,6 +34,14 @@ object CommandParser {
                 durationMs = requiredDuration(json),
                 requestId = requestId,
             )
+            "swipe" -> RemoteCommand.Swipe(
+                startX = requiredCoordinate(json, "startX"),
+                startY = requiredCoordinate(json, "startY"),
+                endX = requiredCoordinate(json, "endX"),
+                endY = requiredCoordinate(json, "endY"),
+                durationMs = requiredDuration(json),
+                requestId = requestId,
+            )
             else -> throw CommandParseException("Unknown command type: $type")
         }
     }

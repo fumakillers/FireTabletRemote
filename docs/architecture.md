@@ -20,7 +20,7 @@ FireRemoteServer (Kotlin, landscape)
              |
              v
   FireRemoteAccessibilityService
-  (`back` / `home` / `recents` global actions and single-point tap are implemented)
+  (`back` / `home` / `recents` global actions and pointer gestures are implemented)
 ```
 
 ## Boundaries
@@ -29,7 +29,7 @@ FireRemoteServer (Kotlin, landscape)
 - WebSocket classes transport complete JSON messages; they do not know preview sizes or transform coordinates.
 - `CommandParser` validates wire input. `CommandDispatcher` invokes a replaceable `CommandExecutor`.
 - `AndroidCommandExecutor` depends on small action and gesture gateway boundaries. The process-local `AccessibilityServiceBridge` registers the system-created service while connected and clears the exact instance on unbind/destroy.
-- `ping` does not use AccessibilityService. `back`, `home`, and `recents` use their matching Android global actions. `tap` uses `dispatchGesture`; `longPress` remains unimplemented.
+- `ping` does not use AccessibilityService. `back`, `home`, and `recents` use their matching Android global actions. `tap`, `longPress`, and `swipe` use `dispatchGesture`.
 - The Controller keeps command JSON creation separate from `ClientWebSocket`. `PreviewCoordinateMapper` owns AspectFit bounds checking and maps preview-local positions to Fire source pixels.
 - `tools/MockWebSocketServer` lets the Controller connect without a Fire Tablet or Server APK.
 
@@ -64,10 +64,14 @@ Controller Image (AspectFit)
 - Hardware buffers and temporary bitmaps are released after each frame.
 - The Controller waits for `previewFrame` or `previewError`, then waits about one second before sending the next request. Disconnecting or hiding the page cancels the loop.
 
-## Preview tap path
+## Preview pointer path
 
 ```text
-Preview-local tap
+Preview Pointer Press / Move / Release
+        |
+        +-- short + small movement -> Tap
+        +-- 600 ms + small movement -> LongPress
+        +-- 24 dp or more movement -> Swipe
         |
         v
 AspectFit displayed-image bounds check
@@ -75,7 +79,7 @@ AspectFit displayed-image bounds check
         v
 PreviewCoordinateMapper -> Fire source pixel
         |
-        | tap command
+        | tap / longPress / swipe command
         v
 AndroidCommandExecutor -> AccessibilityService.dispatchGesture
         |
@@ -83,7 +87,7 @@ AndroidCommandExecutor -> AccessibilityService.dispatchGesture
 Gesture completed / cancelled result
 ```
 
-- Taps in AspectFit letterbox/pillarbox padding are ignored by the Controller.
+- Presses starting in AspectFit letterbox/pillarbox padding are ignored by the Controller. Swipe endpoints in padding are clamped to the displayed image edge.
 - `previewFrame.sourceWidth` and `sourceHeight` identify the Fire coordinate space; encoded JPEG dimensions remain separate.
 - The Server replies with success only from `GestureResultCallback.onCompleted`.
 

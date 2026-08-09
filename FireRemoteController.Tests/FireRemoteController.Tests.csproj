@@ -17,5 +17,9 @@
   <ItemGroup>
     <Compile Include="..\FireRemoteController\Preview\PreviewCoordinateMapper.cs"
              Link="Preview\PreviewCoordinateMapper.cs" />
+    <Compile Include="..\FireRemoteController\Preview\PreviewGestureClassifier.cs"
+             Link="Preview\PreviewGestureClassifier.cs" />
+    <Compile Include="..\FireRemoteController\Protocol\RemoteCommandJson.cs"
+             Link="Protocol\RemoteCommandJson.cs" />
   </ItemGroup>
 </Project>

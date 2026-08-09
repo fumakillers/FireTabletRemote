@@ -23,7 +23,7 @@ tools/MockWebSocketServer/ Controller 単体確認用 .NET mock
 
 Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ実行します。画面の **Start server** を押すと `ws://<tablet-ip>:8080/ws` で待ち受けます。受信内容は Logcat の `FireRemoteWebSocket` と `FireRemoteCommand` タグで確認できます。
 
-`ping` は `pong` を返します。`back` / `home` / `recents` は接続済みの AccessibilityService を通じてAndroidのGlobal Actionを実行します。`tap` は `dispatchGesture()` で実行し、`longPress` はJSON解析のみ実装済みです。
+`ping` は `pong` を返します。`back` / `home` / `recents` は接続済みの AccessibilityService を通じてAndroidのGlobal Actionを実行します。`tap` / `longPress` / `swipe` は `dispatchGesture()` で実行します。
 
 | Command | 現在の状態 |
 |---|---|
@@ -32,7 +32,9 @@ Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ�
 | `home` | 実装済み |
 | `recents` | 実装済み |
 | `tap` | 実装済み |
-| `longPress` | Protocol・解析のみ / 実操作未実装 |
+| `longPress` | 実装済み |
+| `swipe` | 実装済み |
+| `preview` | 実装済み（約1fps） |
 
 コマンド解析テスト:
 
@@ -43,7 +45,7 @@ cd FireRemoteServer
 
 ## FireRemoteController
 
-Android 専用の .NET MAUI プロジェクトです。通常画面は約1秒間隔の静止画Previewを中心とし、下部の `◀`（Back）/ `●`（Home）/ `■`（Recents）からCommandを送信します。Server IP、Port、Connect / Disconnect、詳細Status、**Send test ping** は下部の設定ボタンから開く接続設定内にあります。Preview画像内をタップすると、AspectFitの余白を除外してFire実画面ピクセルへ変換し、`tap` Commandを送信します。
+Android 専用の .NET MAUI プロジェクトです。通常画面は約1秒間隔の静止画Previewを中心とし、右側の `◀`（Back）/ `●`（Home）/ `■`（Recents）からCommandを送信します。Server IP、Port、Connect / Disconnect、詳細Status、**Send test ping** は右上の設定ボタンから開く接続設定内にあります。Preview上のタップ・長押し・スワイプは、AspectFitの余白を考慮してFire実画面ピクセルへ変換して送信します。
 
 ```powershell
 dotnet build FireRemoteController/FireRemoteController.csproj
@@ -91,4 +93,4 @@ Controller から PC の LAN IP（Android Emulator なら通常 `10.0.2.2`）、
 
 ## 現在の開発段階
 
-初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback/home/recents/tap操作を実装しています。Controllerでは低解像度静止画Previewを表示し、AspectFit座標変換後のFire実座標へタップできます。longPress gesture、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。
+初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback/home/recents/tap/longPress/swipe操作を実装しています。Controllerでは低解像度静止画Previewを表示し、AspectFit座標変換後のFire実座標へタップ・長押し・スワイプできます。認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。

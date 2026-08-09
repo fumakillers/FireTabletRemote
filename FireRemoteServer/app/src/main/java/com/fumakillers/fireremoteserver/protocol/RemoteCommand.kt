@@ -15,4 +15,12 @@ sealed interface RemoteCommand {
         val durationMs: Long,
         override val requestId: String?,
     ) : RemoteCommand
+    data class Swipe(
+        val startX: Int,
+        val startY: Int,
+        val endX: Int,
+        val endY: Int,
+        val durationMs: Long,
+        override val requestId: String?,
+    ) : RemoteCommand
 }

@@ -60,6 +60,50 @@ class CommandParserTest {
     }
 
     @Test
+    fun parsesLongPressCommand() {
+        val command = CommandParser.parse(
+            """{"version":1,"type":"longPress","requestId":"hold-1","x":10,"y":20,"durationMs":600}""",
+        ) as RemoteCommand.LongPress
+
+        assertEquals(10, command.x)
+        assertEquals(20, command.y)
+        assertEquals(600, command.durationMs)
+        assertEquals("hold-1", command.requestId)
+    }
+
+    @Test
+    fun parsesSwipeCommand() {
+        val command = CommandParser.parse(
+            """{"version":1,"type":"swipe","requestId":"swipe-1","startX":10,"startY":20,"endX":30,"endY":40,"durationMs":300}""",
+        ) as RemoteCommand.Swipe
+
+        assertEquals(10, command.startX)
+        assertEquals(20, command.startY)
+        assertEquals(30, command.endX)
+        assertEquals(40, command.endY)
+        assertEquals(300, command.durationMs)
+        assertEquals("swipe-1", command.requestId)
+    }
+
+    @Test
+    fun rejectsSwipeWithNegativeCoordinate() {
+        assertThrows(CommandParseException::class.java) {
+            CommandParser.parse(
+                """{"version":1,"type":"swipe","startX":-1,"startY":20,"endX":30,"endY":40,"durationMs":300}""",
+            )
+        }
+    }
+
+    @Test
+    fun rejectsSwipeWithDurationOutsideProtocolRange() {
+        assertThrows(CommandParseException::class.java) {
+            CommandParser.parse(
+                """{"version":1,"type":"swipe","startX":10,"startY":20,"endX":30,"endY":40,"durationMs":60001}""",
+            )
+        }
+    }
+
+    @Test
     fun rejectsFractionalCoordinate() {
         assertThrows(CommandParseException::class.java) {
             CommandParser.parse("""{"version":1,"type":"tap","x":10.5,"y":20}""")

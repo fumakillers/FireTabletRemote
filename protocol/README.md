@@ -12,7 +12,7 @@
 | Field | Type | Required | Description |
 |---|---|---:|---|
 | `version` | integer | yes | Protocol version. The initial value is `1`. |
-| `type` | string | yes | `ping`, `tap`, `back`, `home`, `recents`, `longPress`, or `previewRequest` |
+| `type` | string | yes | `ping`, `tap`, `back`, `home`, `recents`, `longPress`, `swipe`, or `previewRequest` |
 | `requestId` | string | no | Caller-generated correlation ID. Returned unchanged when accepted by the parser. |
 
 Unknown command types or unsupported versions are rejected. Additional unknown fields may be ignored so a compatible sender can be extended later.
@@ -53,10 +53,18 @@ Unknown command types or unsupported versions are rejected. Additional unknown f
 
 ### longPress
 
-`durationMs` is an integer from `100` through `60000` milliseconds.
+`x` and `y` are Fire screen pixel coordinates. `durationMs` is an integer from `100` through `60000` milliseconds.
 
 ```json
 {"version":1,"type":"longPress","requestId":"hold-1","x":500,"y":300,"durationMs":1000}
+```
+
+### swipe
+
+All coordinates are Fire screen pixels. `durationMs` uses the same `100` through `60000` millisecond protocol range as `longPress`.
+
+```json
+{"version":1,"type":"swipe","requestId":"swipe-1","startX":800,"startY":800,"endX":800,"endY":200,"durationMs":300}
 ```
 
 ### previewRequest
@@ -75,7 +83,7 @@ The server responds after parsing and dispatching a command. A `success` value o
 {"version":1,"type":"result","requestId":"check-1","success":true,"message":"pong"}
 ```
 
-The current Server executes `ping` and, while its AccessibilityService is connected, `back`, `home`, `recents`, and `tap`. A successful `tap` result is sent only after Android reports that the gesture completed. `longPress` remains parsed but unimplemented.
+The current Server executes `ping` and, while its AccessibilityService is connected, `back`, `home`, `recents`, `tap`, `longPress`, and `swipe`. Gesture results are sent only after Android reports completion, cancellation, or rejection.
 
 ## Preview responses
 

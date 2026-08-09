@@ -126,7 +126,7 @@ class AndroidCommandExecutorTest {
         var commandResult: CommandResult? = null
         val executor = AndroidCommandExecutor(
             actionGateway = { AndroidActionResult.Performed },
-            gestureGateway = { _, _, callback -> gestureCallback = callback },
+            gestureGateway = { _, callback -> gestureCallback = callback },
         )
 
         executor.execute(RemoteCommand.Tap(10, 20, "tap-1")) { commandResult = it }
@@ -176,23 +176,73 @@ class AndroidCommandExecutorTest {
     }
 
     @Test
-    fun longPressRemainsUnimplemented() {
-        var callCount = 0
+    fun longPressSucceedsWhenGestureCompletes() {
+        var performedGesture: AndroidGesture? = null
         val executor = AndroidCommandExecutor(
-            actionGateway = {
-                callCount++
-                AndroidActionResult.Performed
+            actionGateway = { AndroidActionResult.Performed },
+            gestureGateway = { gesture, callback ->
+                performedGesture = gesture
+                callback(AndroidGestureResult.Completed)
             },
-            gestureGateway = { _, _, _ -> callCount++ },
         )
 
-        val longPressResult = execute(
+        val result = execute(
             executor,
             RemoteCommand.LongPress(10, 20, 1_000, "hold-1"),
         )
 
-        assertFalse(longPressResult.success)
-        assertEquals(0, callCount)
+        assertTrue(result.success)
+        assertEquals("Long press performed", result.message)
+        assertEquals(AndroidGesture.LongPress(10, 20, 1_000), performedGesture)
+    }
+
+    @Test
+    fun swipeSucceedsWhenGestureCompletes() {
+        var performedGesture: AndroidGesture? = null
+        val executor = AndroidCommandExecutor(
+            actionGateway = { AndroidActionResult.Performed },
+            gestureGateway = { gesture, callback ->
+                performedGesture = gesture
+                callback(AndroidGestureResult.Completed)
+            },
+        )
+
+        val result = execute(
+            executor,
+            RemoteCommand.Swipe(10, 20, 30, 40, 300, "swipe-1"),
+        )
+
+        assertTrue(result.success)
+        assertEquals("Swipe performed", result.message)
+        assertEquals(AndroidGesture.Swipe(10, 20, 30, 40, 300), performedGesture)
+    }
+
+    @Test
+    fun longPressReportsServiceNotConnected() {
+        val result = execute(
+            executorWithGestureResult(AndroidGestureResult.ServiceNotConnected),
+            RemoteCommand.LongPress(10, 20, 600, "hold-1"),
+        )
+
+        assertFalse(result.success)
+        assertEquals("Accessibility service is not connected", result.message)
+    }
+
+    @Test
+    fun swipeReportsRejectedAndCancelledGestures() {
+        val rejected = execute(
+            executorWithGestureResult(AndroidGestureResult.Rejected),
+            RemoteCommand.Swipe(10, 20, 30, 40, 300, "swipe-1"),
+        )
+        val cancelled = execute(
+            executorWithGestureResult(AndroidGestureResult.Cancelled),
+            RemoteCommand.Swipe(10, 20, 30, 40, 300, "swipe-2"),
+        )
+
+        assertFalse(rejected.success)
+        assertEquals("Android rejected the swipe gesture", rejected.message)
+        assertFalse(cancelled.success)
+        assertEquals("Swipe gesture was cancelled", cancelled.message)
     }
 
     private fun executorReturning(result: AndroidActionResult) =
@@ -201,7 +251,7 @@ class AndroidCommandExecutorTest {
     private fun executorWithGestureResult(result: AndroidGestureResult) =
         AndroidCommandExecutor(
             actionGateway = { AndroidActionResult.Performed },
-            gestureGateway = { _, _, callback -> callback(result) },
+            gestureGateway = { _, callback -> callback(result) },
         )
 
     private fun execute(executor: AndroidCommandExecutor, command: RemoteCommand): CommandResult {
@@ -211,7 +261,7 @@ class AndroidCommandExecutorTest {
     }
 
     private companion object {
-        val unusedGestureGateway = AndroidGestureGateway { _, _, _ ->
+        val unusedGestureGateway = AndroidGestureGateway { _, _ ->
             error("Gesture gateway should not be called")
         }
     }

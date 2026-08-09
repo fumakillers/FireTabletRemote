@@ -7,9 +7,11 @@ import android.util.Log
 import android.view.WindowManager
 import com.fumakillers.fireremoteserver.command.AndroidActionGateway
 import com.fumakillers.fireremoteserver.command.AndroidActionResult
+import com.fumakillers.fireremoteserver.command.AndroidGesture
 import com.fumakillers.fireremoteserver.command.AndroidGestureGateway
 import com.fumakillers.fireremoteserver.command.AndroidGestureResult
 import com.fumakillers.fireremoteserver.command.AndroidGlobalAction
+import java.util.concurrent.atomic.AtomicBoolean
 
 object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway {
     private var service: FireRemoteAccessibilityService? = null
@@ -59,16 +61,26 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
         }
     }
 
-    override fun performTap(
-        x: Int,
-        y: Int,
+    override fun perform(
+        gesture: AndroidGesture,
         callback: (AndroidGestureResult) -> Unit,
     ) {
-        Log.i(TAG, "tap command received: x=$x y=$y")
+        val gestureName = when (gesture) {
+            is AndroidGesture.Tap -> "tap"
+            is AndroidGesture.LongPress -> "longPress"
+            is AndroidGesture.Swipe -> "swipe"
+        }
+        Log.i(TAG, "$gestureName command received: $gesture")
+        val callbackCompleted = AtomicBoolean(false)
+        fun complete(result: AndroidGestureResult) {
+            if (callbackCompleted.compareAndSet(false, true)) {
+                callback(result)
+            }
+        }
         val connectedService = synchronized(this) { service }
         if (connectedService == null) {
-            Log.w(TAG, "tap failed: Accessibility service is not connected")
-            callback(AndroidGestureResult.ServiceNotConnected)
+            Log.w(TAG, "$gestureName failed: Accessibility service is not connected")
+            complete(AndroidGestureResult.ServiceNotConnected)
             return
         }
 
@@ -77,44 +89,72 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
                 .getSystemService(WindowManager::class.java)
                 .maximumWindowMetrics
                 .bounds
-            if (x !in 0 until screenBounds.width() || y !in 0 until screenBounds.height()) {
+            val points = when (gesture) {
+                is AndroidGesture.Tap -> listOf(gesture.x to gesture.y)
+                is AndroidGesture.LongPress -> listOf(gesture.x to gesture.y)
+                is AndroidGesture.Swipe -> listOf(
+                    gesture.startX to gesture.startY,
+                    gesture.endX to gesture.endY,
+                )
+            }
+            if (points.any { (x, y) ->
+                    x !in 0 until screenBounds.width() || y !in 0 until screenBounds.height()
+                }
+            ) {
                 Log.w(
                     TAG,
-                    "tap rejected: coordinates outside ${screenBounds.width()}x${screenBounds.height()}",
+                    "$gestureName rejected: coordinates outside " +
+                        "${screenBounds.width()}x${screenBounds.height()}",
                 )
-                callback(AndroidGestureResult.InvalidCoordinates)
+                complete(AndroidGestureResult.InvalidCoordinates)
                 return
             }
 
-            val path = Path().apply { moveTo(x.toFloat(), y.toFloat()) }
-            val gesture = GestureDescription.Builder()
-                .addStroke(GestureDescription.StrokeDescription(path, 0, TAP_DURATION_MS))
+            val path = Path().apply {
+                when (gesture) {
+                    is AndroidGesture.Tap -> moveTo(
+                        gesture.x.toFloat(),
+                        gesture.y.toFloat(),
+                    )
+                    is AndroidGesture.LongPress -> moveTo(
+                        gesture.x.toFloat(),
+                        gesture.y.toFloat(),
+                    )
+                    is AndroidGesture.Swipe -> {
+                        moveTo(gesture.startX.toFloat(), gesture.startY.toFloat())
+                        lineTo(gesture.endX.toFloat(), gesture.endY.toFloat())
+                    }
+                }
+            }
+            val gestureDescription = GestureDescription.Builder()
+                .addStroke(
+                    GestureDescription.StrokeDescription(path, 0, gesture.durationMs),
+                )
                 .build()
             val accepted = connectedService.dispatchGesture(
-                gesture,
+                gestureDescription,
                 object : AccessibilityService.GestureResultCallback() {
                     override fun onCompleted(gestureDescription: GestureDescription) {
-                        Log.i(TAG, "tap gesture completed: x=$x y=$y")
-                        callback(AndroidGestureResult.Completed)
+                        Log.i(TAG, "$gestureName gesture completed")
+                        complete(AndroidGestureResult.Completed)
                     }
 
                     override fun onCancelled(gestureDescription: GestureDescription) {
-                        Log.w(TAG, "tap gesture cancelled: x=$x y=$y")
-                        callback(AndroidGestureResult.Cancelled)
+                        Log.w(TAG, "$gestureName gesture cancelled")
+                        complete(AndroidGestureResult.Cancelled)
                     }
                 },
                 null,
             )
             if (!accepted) {
-                Log.w(TAG, "tap gesture was rejected by AccessibilityService")
-                callback(AndroidGestureResult.Rejected)
+                Log.w(TAG, "$gestureName gesture was rejected by AccessibilityService")
+                complete(AndroidGestureResult.Rejected)
             }
         } catch (error: RuntimeException) {
-            Log.e(TAG, "tap gesture failed", error)
-            callback(AndroidGestureResult.Failed)
+            Log.e(TAG, "$gestureName gesture failed", error)
+            complete(AndroidGestureResult.Failed)
         }
     }
 
-    private const val TAP_DURATION_MS = 75L
     private const val TAG = "FireRemoteCommand"
 }

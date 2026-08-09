@@ -33,6 +33,15 @@ public sealed class PreviewCoordinateMapperTests
 		AssertRejected(640, 840, 640, 400, 1920, 1200, 320, 620);
 	}
 
+	[Fact]
+	public void SwipeEndOutsideImageIsClampedToImageEdge()
+	{
+		Assert.True(PreviewCoordinateMapper.TryMapAspectFitClamped(
+			840, 240, 640, 400, 1920, 1200, 100, 300, out var point));
+
+		Assert.Equal(new FireScreenPoint(0, 1199), point);
+	}
+
 	private static void AssertMapped(
 		double previewWidth,
 		double previewHeight,

@@ -27,7 +27,7 @@ Unknown command types or unsupported versions are rejected. Additional unknown f
 
 ### tap
 
-`x` and `y` are non-negative integer pixels in the Fire Tablet's current landscape screen coordinate system. Coordinate conversion belongs to the Controller presentation/domain layer, not to WebSocket transport.
+`x` and `y` are integer pixels in the Fire Tablet's current landscape screen coordinate system, with `0 <= x < sourceWidth` and `0 <= y < sourceHeight`. AspectFit coordinate conversion belongs to the Controller presentation/domain layer, not to WebSocket transport.
 
 ```json
 {"version":1,"type":"tap","requestId":"tap-1","x":500,"y":300}
@@ -75,11 +75,11 @@ The server responds after parsing and dispatching a command. A `success` value o
 {"version":1,"type":"result","requestId":"check-1","success":true,"message":"pong"}
 ```
 
-The current Server executes `ping` and, while its AccessibilityService is connected, `back`, `home`, and `recents`. It parses `tap` and `longPress`, then returns `success: false` because gesture execution is intentionally not implemented yet.
+The current Server executes `ping` and, while its AccessibilityService is connected, `back`, `home`, `recents`, and `tap`. A successful `tap` result is sent only after Android reports that the gesture completed. `longPress` remains parsed but unimplemented.
 
 ## Preview responses
 
-Successful `previewRequest` calls return a JPEG Base64-encoded in a JSON text frame. `width` and `height` are the encoded image dimensions; aspect ratio is preserved and the longest edge is at most 640 pixels.
+Successful `previewRequest` calls return a JPEG Base64-encoded in a JSON text frame. `width` and `height` are the encoded image dimensions; `sourceWidth` and `sourceHeight` are the Fire display dimensions of the captured source used for tap mapping. Aspect ratio is preserved and the longest encoded edge is at most 640 pixels.
 
 ```json
 {
@@ -89,6 +89,8 @@ Successful `previewRequest` calls return a JPEG Base64-encoded in a JSON text fr
   "mimeType": "image/jpeg",
   "width": 640,
   "height": 400,
+  "sourceWidth": 1920,
+  "sourceHeight": 1200,
   "data": "<base64>"
 }
 ```

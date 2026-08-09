@@ -41,7 +41,7 @@ class FireRemoteServerService : Service() {
         server = CommandWebSocketServer(
             DEFAULT_PORT,
             CommandDispatcher(
-                AndroidCommandExecutor(AccessibilityServiceBridge),
+                AndroidCommandExecutor(AccessibilityServiceBridge, AccessibilityServiceBridge),
                 provider,
             ),
         ).also { it.start() }

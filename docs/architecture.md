@@ -2,7 +2,7 @@
 
 ```text
 FireRemoteController (.NET MAUI, landscape)
-  UI / future preview coordinate conversion
+  UI / PreviewCoordinateMapper
              |
              | command JSON over WebSocket
              v
@@ -20,7 +20,7 @@ FireRemoteServer (Kotlin, landscape)
              |
              v
   FireRemoteAccessibilityService
-  (`back` / `home` / `recents` global actions are implemented; gestures are not)
+  (`back` / `home` / `recents` global actions and single-point tap are implemented)
 ```
 
 ## Boundaries
@@ -28,9 +28,9 @@ FireRemoteServer (Kotlin, landscape)
 - `protocol/README.md` is the implementation-neutral contract. Kotlin and C# define their own small representations.
 - WebSocket classes transport complete JSON messages; they do not know preview sizes or transform coordinates.
 - `CommandParser` validates wire input. `CommandDispatcher` invokes a replaceable `CommandExecutor`.
-- `AndroidCommandExecutor` depends on the small `AndroidActionGateway` boundary. The process-local `AccessibilityServiceBridge` registers the system-created service while connected and clears the exact instance on unbind/destroy.
-- `ping` does not use AccessibilityService. `back`, `home`, and `recents` use their matching Android global actions; `tap` and `longPress` remain unimplemented.
-- The Controller keeps command JSON creation separate from `ClientWebSocket`. The preview input reports MAUI device-independent coordinates local to its top-left; future Fire-screen mapping remains outside transport.
+- `AndroidCommandExecutor` depends on small action and gesture gateway boundaries. The process-local `AccessibilityServiceBridge` registers the system-created service while connected and clears the exact instance on unbind/destroy.
+- `ping` does not use AccessibilityService. `back`, `home`, and `recents` use their matching Android global actions. `tap` uses `dispatchGesture`; `longPress` remains unimplemented.
+- The Controller keeps command JSON creation separate from `ClientWebSocket`. `PreviewCoordinateMapper` owns AspectFit bounds checking and maps preview-local positions to Fire source pixels.
 - `tools/MockWebSocketServer` lets the Controller connect without a Fire Tablet or Server APK.
 
 ## Preview path
@@ -63,7 +63,29 @@ Controller Image (AspectFit)
 - The screenshot gateway owns the AccessibilityService reference and clears only the matching instance on disconnect/destroy.
 - Hardware buffers and temporary bitmaps are released after each frame.
 - The Controller waits for `previewFrame` or `previewError`, then waits about one second before sending the next request. Disconnecting or hiding the page cancels the loop.
-- Preview taps remain local MAUI coordinates. AspectFit coordinate mapping and Android tap gestures are still out of scope.
+
+## Preview tap path
+
+```text
+Preview-local tap
+        |
+        v
+AspectFit displayed-image bounds check
+        |
+        v
+PreviewCoordinateMapper -> Fire source pixel
+        |
+        | tap command
+        v
+AndroidCommandExecutor -> AccessibilityService.dispatchGesture
+        |
+        v
+Gesture completed / cancelled result
+```
+
+- Taps in AspectFit letterbox/pillarbox padding are ignored by the Controller.
+- `previewFrame.sourceWidth` and `sourceHeight` identify the Fire coordinate space; encoded JPEG dimensions remain separate.
+- The Server replies with success only from `GestureResultCallback.onCompleted`.
 
 ## Current security boundary
 

@@ -46,6 +46,8 @@ class AccessibilityScreenshotProvider(
 
     private fun encode(source: Bitmap, callback: (PreviewResult) -> Unit) {
         try {
+            val sourceWidth = source.width
+            val sourceHeight = source.height
             val largestDimension = maxOf(source.width, source.height)
             val scale = minOf(1.0, MAX_DIMENSION.toDouble() / largestDimension)
             val outputWidth = maxOf(1, (source.width * scale).roundToInt())
@@ -66,7 +68,15 @@ class AccessibilityScreenshotProvider(
                     stream.toByteArray()
                 }
                 Log.d(TAG, "Screenshot encoded: ${output.width}x${output.height}, ${jpegBytes.size} bytes")
-                callback(PreviewResult.Frame(output.width, output.height, jpegBytes))
+                callback(
+                    PreviewResult.Frame(
+                        width = output.width,
+                        height = output.height,
+                        sourceWidth = sourceWidth,
+                        sourceHeight = sourceHeight,
+                        jpegBytes = jpegBytes,
+                    ),
+                )
             } finally {
                 if (output !== source) {
                     output.recycle()

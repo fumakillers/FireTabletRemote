@@ -15,7 +15,13 @@ class CommandDispatcherTest {
     fun previewRequestReturnsFrameFromProvider() {
         val jpeg = byteArrayOf(1, 2, 3, 4)
         val dispatcher = dispatcherWith(
-            PreviewResult.Frame(width = 640, height = 400, jpegBytes = jpeg),
+            PreviewResult.Frame(
+                width = 640,
+                height = 400,
+                sourceWidth = 1920,
+                sourceHeight = 1200,
+                jpegBytes = jpeg,
+            ),
         )
 
         val response = dispatch(
@@ -30,6 +36,8 @@ class CommandDispatcherTest {
         assertEquals("image/jpeg", json.getString("mimeType"))
         assertEquals(640, json.getInt("width"))
         assertEquals(400, json.getInt("height"))
+        assertEquals(1920, json.getInt("sourceWidth"))
+        assertEquals(1200, json.getInt("sourceHeight"))
         assertArrayEquals(jpeg, Base64.getDecoder().decode(json.getString("data")))
     }
 
@@ -55,7 +63,7 @@ class CommandDispatcherTest {
     fun pingStillUsesNormalCommandResult() {
         var providerCalled = false
         val dispatcher = CommandDispatcher(
-            executor = { CommandResult(true, "pong") },
+            executor = { _, callback -> callback(CommandResult(true, "pong")) },
             previewProvider = PreviewProvider {
                 providerCalled = true
             },
@@ -73,7 +81,7 @@ class CommandDispatcherTest {
     }
 
     private fun dispatcherWith(result: PreviewResult) = CommandDispatcher(
-        executor = { CommandResult(false, "Unexpected command") },
+        executor = { _, callback -> callback(CommandResult(false, "Unexpected command")) },
         previewProvider = PreviewProvider { callback -> callback(result) },
     )
 

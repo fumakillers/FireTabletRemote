@@ -13,6 +13,8 @@ object PreviewResponseJson {
             .put("mimeType", "image/jpeg")
             .put("width", result.width)
             .put("height", result.height)
+            .put("sourceWidth", result.sourceWidth)
+            .put("sourceHeight", result.sourceHeight)
             .put("data", Base64.getEncoder().encodeToString(result.jpegBytes))
             .toString()
 

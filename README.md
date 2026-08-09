@@ -23,7 +23,7 @@ tools/MockWebSocketServer/ Controller 単体確認用 .NET mock
 
 Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ実行します。画面の **Start server** を押すと `ws://<tablet-ip>:8080/ws` で待ち受けます。受信内容は Logcat の `FireRemoteWebSocket` と `FireRemoteCommand` タグで確認できます。
 
-`ping` は `pong` を返します。`back` / `home` / `recents` は接続済みの AccessibilityService を通じてAndroidのGlobal Actionを実行します。`tap` / `longPress` はJSONの解析まで実装済みですが、gesture実行は未実装です。
+`ping` は `pong` を返します。`back` / `home` / `recents` は接続済みの AccessibilityService を通じてAndroidのGlobal Actionを実行します。`tap` は `dispatchGesture()` で実行し、`longPress` はJSON解析のみ実装済みです。
 
 | Command | 現在の状態 |
 |---|---|
@@ -31,7 +31,7 @@ Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ�
 | `back` | 実装済み |
 | `home` | 実装済み |
 | `recents` | 実装済み |
-| `tap` | Protocol・解析のみ / 実操作未実装 |
+| `tap` | 実装済み |
 | `longPress` | Protocol・解析のみ / 実操作未実装 |
 
 コマンド解析テスト:
@@ -43,7 +43,7 @@ cd FireRemoteServer
 
 ## FireRemoteController
 
-Android 専用の .NET MAUI 初期プロジェクトです。通常画面は将来のPreview領域を中心とし、下部の `◀`（Back）/ `●`（Home）/ `■`（Recents）からCommandを送信します。Server IP、Port、Connect / Disconnect、詳細Status、**Send test ping** は下部の設定ボタンから開く接続設定内にあります。Preview領域をタップすると、領域左上を `(0,0)` としたMAUIのデバイス非依存単位によるローカル座標を設定画面のStatusとDebug出力で確認できます。Preview画像、Fire実座標への変換、`tap` Command送信はまだ実装していません。
+Android 専用の .NET MAUI プロジェクトです。通常画面は約1秒間隔の静止画Previewを中心とし、下部の `◀`（Back）/ `●`（Home）/ `■`（Recents）からCommandを送信します。Server IP、Port、Connect / Disconnect、詳細Status、**Send test ping** は下部の設定ボタンから開く接続設定内にあります。Preview画像内をタップすると、AspectFitの余白を除外してFire実画面ピクセルへ変換し、`tap` Commandを送信します。
 
 ```powershell
 dotnet build FireRemoteController/FireRemoteController.csproj
@@ -91,4 +91,4 @@ Controller から PC の LAN IP（Android Emulator なら通常 `10.0.2.2`）、
 
 ## 現在の開発段階
 
-初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback/home/recents操作を実装しています。Controllerでは将来Preview領域のローカル座標を取得できます。画面プレビュー、Fire実座標への変換、tap/longPress gesture、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。
+初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback/home/recents/tap操作を実装しています。Controllerでは低解像度静止画Previewを表示し、AspectFit座標変換後のFire実座標へタップできます。longPress gesture、認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。

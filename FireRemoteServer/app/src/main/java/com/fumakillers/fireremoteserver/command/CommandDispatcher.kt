@@ -29,8 +29,9 @@ class CommandDispatcher(
                     )
                 }
             } else {
-                val result = executor.execute(command)
-                respond(response(command.requestId, result.success, result.message))
+                executor.execute(command) { result ->
+                    respond(response(command.requestId, result.success, result.message))
+                }
             }
         } catch (error: CommandParseException) {
             respond(response(null, false, error.message ?: "Invalid command"))

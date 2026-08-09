@@ -1,4 +1,5 @@
 using FireRemoteController.Protocol;
+using FireRemoteController.Preview;
 using FireRemoteController.Services;
 using System.Globalization;
 using Microsoft.Maui.Storage;
@@ -17,6 +18,7 @@ public partial class MainPage : ContentPage
 	private CancellationTokenSource? previewLoopCancellation;
 	private TaskCompletionSource? pendingPreviewResponse;
 	private string? pendingPreviewRequestId;
+	private PreviewFrame? latestPreviewFrame;
 
 	public MainPage(IRemoteWebSocketClient client)
 	{
@@ -201,7 +203,7 @@ public partial class MainPage : ContentPage
 		}
 	}
 
-	private void OnPreviewTapped(object? sender, TappedEventArgs e)
+	private async void OnPreviewTapped(object? sender, TappedEventArgs e)
 	{
 		var position = e.GetPosition(PreviewInputArea);
 		if (position is null)
@@ -209,7 +211,45 @@ public partial class MainPage : ContentPage
 			return;
 		}
 
-		SetStatus($"Preview tap: x={position.Value.X:F0}, y={position.Value.Y:F0}");
+		if (!client.IsConnected)
+		{
+			SetStatus("Tap ignored: not connected");
+			return;
+		}
+
+		var frame = latestPreviewFrame;
+		if (frame is null)
+		{
+			SetStatus("Tap ignored: preview is not available");
+			return;
+		}
+
+		if (!PreviewCoordinateMapper.TryMapAspectFit(
+			PreviewInputArea.Width,
+			PreviewInputArea.Height,
+			frame.Width,
+			frame.Height,
+			frame.SourceWidth,
+			frame.SourceHeight,
+			position.Value.X,
+			position.Value.Y,
+			out var firePoint))
+		{
+			SetStatus("Tap ignored: outside preview image");
+			return;
+		}
+
+		try
+		{
+			var requestId = $"tap-{Guid.NewGuid():N}";
+			await client.SendAsync(RemoteCommandJson.CreateTap(firePoint.X, firePoint.Y, requestId));
+			SetStatus($"Tap sent: x={firePoint.X}, y={firePoint.Y}");
+		}
+		catch (Exception error)
+		{
+			SetStatus($"Tap failed: {error.Message}");
+			SetConnectionError();
+		}
 	}
 
 	private void OnConnectionChanged(object? sender, bool connected)
@@ -232,6 +272,7 @@ public partial class MainPage : ContentPage
 			SetRemoteCommandButtonsEnabled(connected);
 			if (!connected)
 			{
+				latestPreviewFrame = null;
 				PreviewImage.Source = null;
 				PreviewPlaceholder.IsVisible = true;
 			}
@@ -349,6 +390,7 @@ public partial class MainPage : ContentPage
 		switch (response)
 		{
 			case PreviewFrame frame:
+				latestPreviewFrame = frame;
 				PreviewImage.Source = ImageSource.FromStream(
 					() => new MemoryStream(frame.Data, writable: false));
 				PreviewPlaceholder.IsVisible = false;

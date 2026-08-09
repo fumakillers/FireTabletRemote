@@ -44,7 +44,7 @@ class MainActivity : Activity() {
                 setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
             }, matchWidth())
             addView(TextView(context).apply {
-                text = "Received commands are logged with tags FireRemoteWebSocket and FireRemoteCommand. Tap and long-press gestures are not implemented yet."
+                text = "Received commands are logged with tags FireRemoteWebSocket and FireRemoteCommand. Long-press gestures are not implemented yet."
             })
         }
         setContentView(content)

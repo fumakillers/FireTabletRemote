@@ -4,6 +4,8 @@ sealed interface PreviewResult {
     data class Frame(
         val width: Int,
         val height: Int,
+        val sourceWidth: Int,
+        val sourceHeight: Int,
         val jpegBytes: ByteArray,
     ) : PreviewResult
 

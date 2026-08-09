@@ -16,3 +16,16 @@ sealed interface AndroidActionResult {
     data object Rejected : AndroidActionResult
     data object Failed : AndroidActionResult
 }
+
+fun interface AndroidGestureGateway {
+    fun performTap(x: Int, y: Int, callback: (AndroidGestureResult) -> Unit)
+}
+
+sealed interface AndroidGestureResult {
+    data object Completed : AndroidGestureResult
+    data object ServiceNotConnected : AndroidGestureResult
+    data object Rejected : AndroidGestureResult
+    data object Cancelled : AndroidGestureResult
+    data object InvalidCoordinates : AndroidGestureResult
+    data object Failed : AndroidGestureResult
+}

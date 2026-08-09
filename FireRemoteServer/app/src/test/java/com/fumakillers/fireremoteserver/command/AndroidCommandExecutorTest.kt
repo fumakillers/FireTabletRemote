@@ -3,6 +3,7 @@ package com.fumakillers.fireremoteserver.command
 import com.fumakillers.fireremoteserver.protocol.RemoteCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -11,7 +12,7 @@ class AndroidCommandExecutorTest {
     fun backFailsWhenAccessibilityServiceIsNotConnected() {
         val executor = executorReturning(AndroidActionResult.ServiceNotConnected)
 
-        val result = executor.execute(RemoteCommand.Back("back-1"))
+        val result = execute(executor, RemoteCommand.Back("back-1"))
 
         assertFalse(result.success)
         assertEquals("Accessibility service is not connected", result.message)
@@ -20,12 +21,15 @@ class AndroidCommandExecutorTest {
     @Test
     fun backSucceedsWhenGlobalActionSucceeds() {
         var performedAction: AndroidGlobalAction? = null
-        val executor = AndroidCommandExecutor { action ->
-            performedAction = action
-            AndroidActionResult.Performed
-        }
+        val executor = AndroidCommandExecutor(
+            actionGateway = { action ->
+                performedAction = action
+                AndroidActionResult.Performed
+            },
+            gestureGateway = unusedGestureGateway,
+        )
 
-        val result = executor.execute(RemoteCommand.Back("back-1"))
+        val result = execute(executor, RemoteCommand.Back("back-1"))
 
         assertTrue(result.success)
         assertEquals("Back performed", result.message)
@@ -35,12 +39,15 @@ class AndroidCommandExecutorTest {
     @Test
     fun homeSucceedsWhenGlobalActionSucceeds() {
         var performedAction: AndroidGlobalAction? = null
-        val executor = AndroidCommandExecutor { action ->
-            performedAction = action
-            AndroidActionResult.Performed
-        }
+        val executor = AndroidCommandExecutor(
+            actionGateway = { action ->
+                performedAction = action
+                AndroidActionResult.Performed
+            },
+            gestureGateway = unusedGestureGateway,
+        )
 
-        val result = executor.execute(RemoteCommand.Home("home-1"))
+        val result = execute(executor, RemoteCommand.Home("home-1"))
 
         assertTrue(result.success)
         assertEquals("Home performed", result.message)
@@ -50,12 +57,15 @@ class AndroidCommandExecutorTest {
     @Test
     fun recentsSucceedsWhenGlobalActionSucceeds() {
         var performedAction: AndroidGlobalAction? = null
-        val executor = AndroidCommandExecutor { action ->
-            performedAction = action
-            AndroidActionResult.Performed
-        }
+        val executor = AndroidCommandExecutor(
+            actionGateway = { action ->
+                performedAction = action
+                AndroidActionResult.Performed
+            },
+            gestureGateway = unusedGestureGateway,
+        )
 
-        val result = executor.execute(RemoteCommand.Recents("recents-1"))
+        val result = execute(executor, RemoteCommand.Recents("recents-1"))
 
         assertTrue(result.success)
         assertEquals("Recents performed", result.message)
@@ -66,7 +76,7 @@ class AndroidCommandExecutorTest {
     fun backFailsWhenGlobalActionIsRejected() {
         val executor = executorReturning(AndroidActionResult.Rejected)
 
-        val result = executor.execute(RemoteCommand.Back("back-1"))
+        val result = execute(executor, RemoteCommand.Back("back-1"))
 
         assertFalse(result.success)
         assertEquals("Android rejected the back action", result.message)
@@ -76,7 +86,7 @@ class AndroidCommandExecutorTest {
     fun backFailsWhenActionGatewayReportsFailure() {
         val executor = executorReturning(AndroidActionResult.Failed)
 
-        val result = executor.execute(RemoteCommand.Back("back-1"))
+        val result = execute(executor, RemoteCommand.Back("back-1"))
 
         assertFalse(result.success)
         assertEquals("Back action failed", result.message)
@@ -85,12 +95,15 @@ class AndroidCommandExecutorTest {
     @Test
     fun pingDoesNotUseAccessibilityService() {
         var callCount = 0
-        val executor = AndroidCommandExecutor {
-            callCount++
-            AndroidActionResult.ServiceNotConnected
-        }
+        val executor = AndroidCommandExecutor(
+            actionGateway = {
+                callCount++
+                AndroidActionResult.ServiceNotConnected
+            },
+            gestureGateway = unusedGestureGateway,
+        )
 
-        val result = executor.execute(RemoteCommand.Ping("ping-1"))
+        val result = execute(executor, RemoteCommand.Ping("ping-1"))
 
         assertTrue(result.success)
         assertEquals("pong", result.message)
@@ -98,21 +111,108 @@ class AndroidCommandExecutorTest {
     }
 
     @Test
-    fun tapAndLongPressRemainUnimplemented() {
+    fun tapSucceedsWhenGestureCompletes() {
+        val executor = executorWithGestureResult(AndroidGestureResult.Completed)
+
+        val result = execute(executor, RemoteCommand.Tap(10, 20, "tap-1"))
+
+        assertTrue(result.success)
+        assertEquals("Tap performed", result.message)
+    }
+
+    @Test
+    fun tapResultWaitsForGestureCompletionCallback() {
+        var gestureCallback: ((AndroidGestureResult) -> Unit)? = null
+        var commandResult: CommandResult? = null
+        val executor = AndroidCommandExecutor(
+            actionGateway = { AndroidActionResult.Performed },
+            gestureGateway = { _, _, callback -> gestureCallback = callback },
+        )
+
+        executor.execute(RemoteCommand.Tap(10, 20, "tap-1")) { commandResult = it }
+
+        assertNull(commandResult)
+        requireNotNull(gestureCallback)(AndroidGestureResult.Completed)
+        assertTrue(requireNotNull(commandResult).success)
+    }
+
+    @Test
+    fun tapReportsServiceNotConnected() {
+        val result = execute(
+            executorWithGestureResult(AndroidGestureResult.ServiceNotConnected),
+            RemoteCommand.Tap(10, 20, "tap-1"),
+        )
+
+        assertFalse(result.success)
+        assertEquals("Accessibility service is not connected", result.message)
+    }
+
+    @Test
+    fun tapReportsRejectedAndCancelledGestures() {
+        val rejected = execute(
+            executorWithGestureResult(AndroidGestureResult.Rejected),
+            RemoteCommand.Tap(10, 20, "tap-1"),
+        )
+        val cancelled = execute(
+            executorWithGestureResult(AndroidGestureResult.Cancelled),
+            RemoteCommand.Tap(10, 20, "tap-2"),
+        )
+
+        assertFalse(rejected.success)
+        assertEquals("Android rejected the tap gesture", rejected.message)
+        assertFalse(cancelled.success)
+        assertEquals("Tap gesture was cancelled", cancelled.message)
+    }
+
+    @Test
+    fun tapReportsGestureFailure() {
+        val result = execute(
+            executorWithGestureResult(AndroidGestureResult.Failed),
+            RemoteCommand.Tap(10, 20, "tap-1"),
+        )
+
+        assertFalse(result.success)
+        assertEquals("Tap gesture failed", result.message)
+    }
+
+    @Test
+    fun longPressRemainsUnimplemented() {
         var callCount = 0
-        val executor = AndroidCommandExecutor {
-            callCount++
-            AndroidActionResult.Performed
-        }
+        val executor = AndroidCommandExecutor(
+            actionGateway = {
+                callCount++
+                AndroidActionResult.Performed
+            },
+            gestureGateway = { _, _, _ -> callCount++ },
+        )
 
-        val tapResult = executor.execute(RemoteCommand.Tap(10, 20, "tap-1"))
-        val longPressResult = executor.execute(RemoteCommand.LongPress(10, 20, 1_000, "hold-1"))
+        val longPressResult = execute(
+            executor,
+            RemoteCommand.LongPress(10, 20, 1_000, "hold-1"),
+        )
 
-        assertFalse(tapResult.success)
         assertFalse(longPressResult.success)
         assertEquals(0, callCount)
     }
 
     private fun executorReturning(result: AndroidActionResult) =
-        AndroidCommandExecutor { result }
+        AndroidCommandExecutor({ result }, unusedGestureGateway)
+
+    private fun executorWithGestureResult(result: AndroidGestureResult) =
+        AndroidCommandExecutor(
+            actionGateway = { AndroidActionResult.Performed },
+            gestureGateway = { _, _, callback -> callback(result) },
+        )
+
+    private fun execute(executor: AndroidCommandExecutor, command: RemoteCommand): CommandResult {
+        var result: CommandResult? = null
+        executor.execute(command) { result = it }
+        return requireNotNull(result)
+    }
+
+    private companion object {
+        val unusedGestureGateway = AndroidGestureGateway { _, _, _ ->
+            error("Gesture gateway should not be called")
+        }
+    }
 }

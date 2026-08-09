@@ -5,5 +5,5 @@ import com.fumakillers.fireremoteserver.protocol.RemoteCommand
 data class CommandResult(val success: Boolean, val message: String)
 
 fun interface CommandExecutor {
-    fun execute(command: RemoteCommand): CommandResult
+    fun execute(command: RemoteCommand, callback: (CommandResult) -> Unit)
 }

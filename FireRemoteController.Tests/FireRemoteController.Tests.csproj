@@ -21,5 +21,9 @@
              Link="Preview\PreviewGestureClassifier.cs" />
     <Compile Include="..\FireRemoteController\Protocol\RemoteCommandJson.cs"
              Link="Protocol\RemoteCommandJson.cs" />
+    <Compile Include="..\FireRemoteController\Services\IRemoteWebSocketClient.cs"
+             Link="Services\IRemoteWebSocketClient.cs" />
+    <Compile Include="..\FireRemoteController\Services\RemoteWebSocketClient.cs"
+             Link="Services\RemoteWebSocketClient.cs" />
   </ItemGroup>
 </Project>

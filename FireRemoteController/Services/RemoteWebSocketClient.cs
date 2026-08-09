@@ -5,6 +5,7 @@ namespace FireRemoteController.Services;
 
 public sealed class RemoteWebSocketClient : IRemoteWebSocketClient
 {
+	private static readonly TimeSpan ConnectTimeout = TimeSpan.FromSeconds(5);
 	private readonly SemaphoreSlim gate = new(1, 1);
 	private readonly SemaphoreSlim sendGate = new(1, 1);
 	private ClientWebSocket? socket;
@@ -25,9 +26,19 @@ public sealed class RemoteWebSocketClient : IRemoteWebSocketClient
 			await DisconnectCoreAsync(CancellationToken.None);
 			var newSocket = new ClientWebSocket();
 			var endpoint = new UriBuilder("ws", host, port, "ws").Uri;
+			using var connectCancellation =
+				CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+			connectCancellation.CancelAfter(ConnectTimeout);
 			try
 			{
-				await newSocket.ConnectAsync(endpoint, cancellationToken);
+				await newSocket.ConnectAsync(endpoint, connectCancellation.Token);
+			}
+			catch (OperationCanceledException) when (
+				!cancellationToken.IsCancellationRequested
+				&& connectCancellation.IsCancellationRequested)
+			{
+				newSocket.Dispose();
+				throw new TimeoutException("Connection timed out.");
 			}
 			catch
 			{

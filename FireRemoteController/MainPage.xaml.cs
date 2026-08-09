@@ -94,6 +94,11 @@ public partial class MainPage : ContentPage
 		{
 			await client.ConnectAsync(serverIp, port);
 		}
+		catch (TimeoutException)
+		{
+			SetStatus("Connection timed out");
+			SetConnectionError();
+		}
 		catch (Exception error)
 		{
 			SetStatus($"Connection failed: {error.Message}");

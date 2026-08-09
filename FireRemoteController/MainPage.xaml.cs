@@ -410,14 +410,22 @@ public partial class MainPage : ContentPage
 
 	private void SetConnectionError()
 	{
-		ConnectionStateLabel.Text = "Error";
-		ConnectionStateLabel.TextColor = Color.FromArgb("#EF5350");
+		SetConnectionIndicator("Error", "#EF5350", "#B71C1C");
 	}
 
 	private void SetConnectionState(string status, bool connected)
 	{
-		ConnectionStateLabel.Text = status;
-		ConnectionStateLabel.TextColor = Color.FromArgb(connected ? "#4CAF50" : "#9E9E9E");
+		SetConnectionIndicator(
+			status,
+			connected ? "#42A5F5" : "#9E9E9E",
+			connected ? "#1565C0" : "#616161");
+	}
+
+	private void SetConnectionIndicator(string description, string fillColor, string strokeColor)
+	{
+		ConnectionStateIndicator.BackgroundColor = Color.FromArgb(fillColor);
+		ConnectionStateIndicator.Stroke = Color.FromArgb(strokeColor);
+		SemanticProperties.SetDescription(ConnectionStateIndicator, description);
 	}
 
 	private void SetBusy(bool busy)

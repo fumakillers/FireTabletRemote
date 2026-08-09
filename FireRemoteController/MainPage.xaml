@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="FireRemoteController.MainPage"
              Title="Fire Remote Controller">
-    <Grid RowDefinitions="*,Auto">
-        <Border Grid.Row="0" Margin="12,12,12,6" Padding="0"
+    <Grid ColumnDefinitions="*,72">
+        <Border Grid.Column="0" Margin="12,12,6,12" Padding="0"
                 StrokeShape="RoundRectangle 12" StrokeThickness="1">
             <Grid x:Name="PreviewInputArea" BackgroundColor="Transparent">
                 <Grid.GestureRecognizers>
@@ -24,31 +24,37 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1" Padding="12,6,12,12"
-              ColumnDefinitions="*,*,*,Auto,Auto" ColumnSpacing="10">
-            <Button x:Name="BackButton" Grid.Column="0" Text="&#x25C0;" FontSize="22"
-                    IsEnabled="False" MinimumHeightRequest="56"
-                    SemanticProperties.Description="Back"
-                    Clicked="OnBackClicked" />
-            <Button x:Name="HomeButton" Grid.Column="1" Text="&#x25CF;" FontSize="22"
-                    IsEnabled="False" MinimumHeightRequest="56"
-                    SemanticProperties.Description="Home"
-                    Clicked="OnHomeClicked" />
-            <Button x:Name="RecentsButton" Grid.Column="2" Text="&#x25A0;" FontSize="22"
-                    IsEnabled="False" MinimumHeightRequest="56"
-                    SemanticProperties.Description="Recents"
-                    Clicked="OnRecentsClicked" />
-            <Label x:Name="ConnectionStateLabel" Grid.Column="3" Text="Disconnected"
-                   MinimumWidthRequest="120" VerticalOptions="Center"
-                   HorizontalTextAlignment="Center" FontAttributes="Bold"
-                   LineBreakMode="NoWrap" />
-            <Button x:Name="SettingsButton" Grid.Column="4" Text="&#x2699;" FontSize="22"
-                    MinimumWidthRequest="64" MinimumHeightRequest="56"
+        <Grid Grid.Column="1" Padding="6,12,6,12"
+              RowDefinitions="Auto,Auto,*,*,*" RowSpacing="8">
+            <Button x:Name="SettingsButton" Grid.Row="0" Text="&#x2699;" FontSize="22"
+                    WidthRequest="56" HeightRequest="56"
+                    HorizontalOptions="Center"
                     SemanticProperties.Description="Connection settings"
                     Clicked="OnSettingsClicked" />
+            <Border x:Name="ConnectionStateIndicator" Grid.Row="1"
+                    WidthRequest="18" HeightRequest="18"
+                    HorizontalOptions="Center" VerticalOptions="Center"
+                    BackgroundColor="#9E9E9E" Stroke="#616161" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 9"
+                    SemanticProperties.Description="Disconnected" />
+            <Button x:Name="BackButton" Grid.Row="2" Text="&#x25C0;" FontSize="22"
+                    IsEnabled="False" WidthRequest="56" HeightRequest="56"
+                    HorizontalOptions="Center" VerticalOptions="Center"
+                    SemanticProperties.Description="Back"
+                    Clicked="OnBackClicked" />
+            <Button x:Name="HomeButton" Grid.Row="3" Text="&#x25CF;" FontSize="22"
+                    IsEnabled="False" WidthRequest="56" HeightRequest="56"
+                    HorizontalOptions="Center" VerticalOptions="Center"
+                    SemanticProperties.Description="Home"
+                    Clicked="OnHomeClicked" />
+            <Button x:Name="RecentsButton" Grid.Row="4" Text="&#x25A0;" FontSize="22"
+                    IsEnabled="False" WidthRequest="56" HeightRequest="56"
+                    HorizontalOptions="Center" VerticalOptions="Center"
+                    SemanticProperties.Description="Recents"
+                    Clicked="OnRecentsClicked" />
         </Grid>
 
-        <Grid x:Name="SettingsOverlay" Grid.RowSpan="2" IsVisible="False"
+        <Grid x:Name="SettingsOverlay" Grid.ColumnSpan="2" IsVisible="False"
               BackgroundColor="#99000000" ZIndex="10">
             <Border WidthRequest="560" MaximumHeightRequest="390" Padding="20"
                     HorizontalOptions="Center" VerticalOptions="Center"

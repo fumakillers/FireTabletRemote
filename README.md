@@ -1,96 +1,167 @@
 # Fire Tablet Remote
 
-アーム等に固定した Fire Tablet を、Android スマートフォンから同一 LAN 内で操作するためのクライアント・サーバー型アプリです。主な想定用途は、手元から離れた Fire HD 10 上の YouTube 等を操作することです。
+アームなどに固定したFire Tabletを、Androidスマートフォンから同一LAN経由で操作するためのリモートコントローラーです。ベッドなどFire Tabletから離れた場所から、YouTubeをはじめとするアプリを操作する用途を想定しています。
 
-## 想定環境
+## Features
 
-- Server: Fire HD 10（第13世代）/ Fire OS 8 系を主対象
-- Controller: Motorola Edge 50 Pro / Android 16 を主対象
-- 接続: 信頼できる同一 LAN（Protocol v1 は認証・TLS なし）
-- 画面: Fire Tablet と Controller の両方を Landscape 固定で使用
+- Fire Tablet画面の低解像度Preview
+- Preview上でのTap / Long Press / Swipe
+- Back / Home / Recentsのナビゲーション操作
+- スマートフォンのLandscape専用リモコンUI
+- 同一LAN内のWebSocket通信
+- 接続先IPアドレスとPortの保存
+- 接続状態表示と5秒の接続タイムアウト
 
-## ディレクトリ
+Previewは動画ストリーミングではなく、約1秒間隔で更新される低解像度の静止画です。
+
+## Requirements
+
+### FireRemoteServer
+
+- 確認済み: Fire HD 10 第13世代 / Fire OS 8系
+- Android API 30以降に相当するScreenshot APIとAccessibilityServiceが必要です
+
+他のFire Tabletでも動作する可能性はありますが、現時点では未確認です。
+
+### FireRemoteController
+
+- Android 11 / API 30以上
+- Landscape表示
+- 主な確認対象: Motorola Edge 50 Pro / Android 16
+- 開発確認: Pixel 9 API 36 Emulator
+
+Fire TabletとController端末を同じ信頼できるLANへ接続してください。
+
+## Install
+
+[GitHub Releases](https://github.com/fumakillers/FireTabletRemote/releases)から次のAPKをダウンロードし、それぞれの端末へインストールします。
+
+- Fire Tablet: `FireRemoteServer-v0.1.0.apk`
+- Androidスマートフォン: `FireRemoteController-v0.1.0.apk`
+
+v0.1.0のAPKは、production用署名設定が未導入のためdebug署名のDebug buildです。Google Play配布用ではなく、APKを端末へ直接インストールして使用します。
+
+端末の設定によっては、ブラウザやファイルアプリに「不明なアプリのインストール」の許可が必要です。
+
+## Fire Tabletのセットアップ
+
+1. `FireRemoteServer-v0.1.0.apk`をFire Tabletへインストールします。
+2. **Fire Remote Server**を起動します。
+3. **Open Accessibility Settings**を押します。
+4. Accessibility設定で**Fire Remote Accessibility**を有効にします。
+5. アプリへ戻り、`Accessibility: Connected`を確認します。
+6. **Start server**を押します。
+7. `Server: Running`を確認します。
+
+Fire OSのバージョンによって、Accessibility設定の名称や階層が異なる場合があります。その場合は、ユーザー補助またはインストール済みサービスに相当する設定から**Fire Remote Accessibility**を有効にしてください。
+
+### Fire TabletのIPアドレス
+
+Fire TabletのWi-Fi詳細画面などから、同一LAN内で使用しているローカルIPv4アドレスを確認してください。Controllerの接続設定でこのアドレスを使用します。IPアドレスはルーターの設定などにより変わる場合があります。
+
+## Controllerのセットアップ
+
+1. `FireRemoteController-v0.1.0.apk`をAndroidスマートフォンへインストールします。
+2. **Fire Remote Controller**をLandscapeで起動します。
+3. 右側ツールバー上部のSettingsボタン（歯車）を押します。
+4. **Server IP**へFire TabletのローカルIPv4アドレスを入力します。
+5. **Port**が`8080`であることを確認します。
+6. **Connect**を押します。
+7. 右側のWi-Fi状態アイコンがConnectedを示し、Previewが表示されることを確認します。
+
+Server IPとPortは端末へ保存され、次回起動時に復元されます。接続できない場合は、Fire側が`Server: Running`であること、両端末が同じLANにいること、端末やネットワークのFirewall設定をご確認ください。
+
+## Operations
+
+### Preview
+
+Fire Tabletの現在画面を約1秒間隔の静止画として表示します。
+
+### Tap
+
+Preview上の操作したい位置を短くタップします。
+
+### Long Press
+
+Preview上の操作したい位置を約0.6秒以上長押しします。
+
+### Swipe
+
+Preview上で開始位置から終了位置までドラッグまたはスワイプします。
+
+### Navigation
+
+右側ツールバーのボタンを使用します。
+
+- `◀` Back
+- `●` Home
+- `■` Recents
+- 歯車 Connection Settings
+
+## Network and Security
+
+Protocol v1には認証とTLSがありません。通信には平文WebSocket（`ws://`）とPort `8080`を使用します。
+
+信頼できる家庭内LANなどでのみ使用してください。FireRemoteServerのPort `8080`をインターネットへ直接公開しないでください。
+
+## Limitations
+
+- Previewは約1fpsの低解像度静止画であり、動画ではありません
+- DRM、`FLAG_SECURE`、その他OS制約のある画面は取得できない、または黒く表示される場合があります
+- 自動端末探索は未実装です
+- 認証とTLSは未実装です
+- Fire TabletとControllerはLandscapeでの使用を前提としています
+- 主な動作確認対象はFire HD 10 第13世代 / Fire OS 8系です
+- Fire OSやAndroidの仕様により、一部画面や操作でAccessibilityServiceの動作が制限される場合があります
+
+## Development
+
+### Repository structure
 
 ```text
-FireRemoteServer/       Android Studio / Kotlin の WebSocket Server
-FireRemoteController/   Android 向け .NET MAUI WebSocket Client
-protocol/               実装非依存の JSON Protocol v1
-docs/                   責務分離などの設計メモ
-tools/MockWebSocketServer/ Controller 単体確認用 .NET mock
+FireRemoteServer/          Kotlin / Android server
+FireRemoteController/      .NET MAUI Android controller
+FireRemoteController.Tests/ Controller unit tests
+protocol/                  JSON WebSocket Protocol v1
+docs/                      Architecture notes
+tools/MockWebSocketServer/ Controller development mock server
 ```
 
-## FireRemoteServer
+主要技術:
 
-Android Studio で `FireRemoteServer/` を開き、Gradle Sync 後に実機へ実行します。画面の **Start server** を押すと `ws://<tablet-ip>:8080/ws` で待ち受けます。受信内容は Logcat の `FireRemoteWebSocket` と `FireRemoteCommand` タグで確認できます。
+- Server: Kotlin / Android / Foreground Service / AccessibilityService / Java-WebSocket
+- Controller: .NET MAUI / C# / ClientWebSocket
 
-`ping` は `pong` を返します。`back` / `home` / `recents` は接続済みの AccessibilityService を通じてAndroidのGlobal Actionを実行します。`tap` / `longPress` / `swipe` は `dispatchGesture()` で実行します。
-
-| Command | 現在の状態 |
-|---|---|
-| `ping` | 実装済み |
-| `back` | 実装済み |
-| `home` | 実装済み |
-| `recents` | 実装済み |
-| `tap` | 実装済み |
-| `longPress` | 実装済み |
-| `swipe` | 実装済み |
-| `preview` | 実装済み（約1fps） |
-
-コマンド解析テスト:
+### Server build and test
 
 ```powershell
 cd FireRemoteServer
 ./gradlew.bat testDebugUnitTest
+./gradlew.bat assembleDebug
 ```
 
-## FireRemoteController
-
-Android 専用の .NET MAUI プロジェクトです。通常画面は約1秒間隔の静止画Previewを中心とし、右側の `◀`（Back）/ `●`（Home）/ `■`（Recents）からCommandを送信します。Server IP、Port、Connect / Disconnect、詳細Status、**Send test ping** は右上の設定ボタンから開く接続設定内にあります。Preview上のタップ・長押し・スワイプは、AspectFitの余白を考慮してFire実画面ピクセルへ変換して送信します。
+### Controller build and test
 
 ```powershell
-dotnet build FireRemoteController/FireRemoteController.csproj
+dotnet test FireRemoteController.Tests/FireRemoteController.Tests.csproj
+dotnet build FireRemoteController/FireRemoteController.csproj -f net10.0-android
 ```
 
-Visual Studio または `dotnet build -t:Run` から Android 実機へ配置してください。Controller の Landscape 固定は `Platforms/Android/MainActivity.cs` の `ScreenOrientation.SensorLandscape` で設定しています。Server 側も Manifest で `sensorLandscape` に設定しています。
+### Mock WebSocket Server
 
-## 片側だけで確認する
-
-### Server 単体
-
-一般的な WebSocket Client（Postman、websocat 等）で Server に接続し、次を送信します。
-
-```json
-{"version":1,"type":"ping","requestId":"manual-1"}
-```
-
-`{"version":1,"type":"result",..."success":true,"message":"pong"}` が返り、Logcat に接続・受信・解析結果が出れば Server 側の最小経路を確認できています。
-
-### Fire HD 10でbackを確認する
-
-1. FireRemoteServerのDebug APKをFire HD 10へインストールして起動します。
-2. **Open Accessibility settings** を押します。
-3. Accessibility設定で **Fire Remote Accessibility** を有効にします。
-4. アプリへ戻り、`Accessibility: Connected` と表示されることを確認します。
-5. **Start server** を押します。
-6. 同一LAN上のWebSocket Clientから `ws://<tablet-ip>:8080/ws` へ接続します。
-7. 次のCommandを送信し、Tablet上で実際に「戻る」が発生することと、`success: true` のresultを確認します。
-
-```json
-{"version":1,"type":"back","requestId":"back-test-1"}
-```
-
-Fire OSのバージョンによってAccessibility設定の名称や階層が異なる場合があります。その場合は設定画面内の「ユーザー補助」またはインストール済みサービスに相当する項目から **Fire Remote Accessibility** を有効にしてください。未接続時やAndroid APIが操作を受理しなかった場合は、Serverはクラッシュせず `success: false` と理由を返します。
-
-### Controller 単体
-
-PC 上で依存パッケージ不要の Mock Server を起動します。
+FireRemoteServerを使用せずControllerの接続やpingを確認できます。
 
 ```powershell
 dotnet run --project tools/MockWebSocketServer --urls http://0.0.0.0:8080
 ```
 
-Controller から PC の LAN IP（Android Emulator なら通常 `10.0.2.2`）、Port `8080` へ接続します。ping 送信後に `mock received ping` が表示されれば Client の送受信を確認できます。Windows Firewall で受信許可が必要な場合があります。
+Android EmulatorからホストPCへ接続する場合、通常はServer IPに`10.0.2.2`を使用します。ホスト側Firewallで受信許可が必要になる場合があります。
 
-## 現在の開発段階
+## Protocol and Architecture
 
-初期基盤です。Protocol、WebSocket送受信、Command解析、Foreground Service、AccessibilityService経由のback/home/recents/tap/longPress/swipe操作を実装しています。Controllerでは低解像度静止画Previewを表示し、AspectFit座標変換後のFire実座標へタップ・長押し・スワイプできます。認証、TLS、自動探索はまだ実装していません。詳細は [Protocol](protocol/README.md) と [Architecture](docs/architecture.md) を参照してください。
+- [WebSocket Protocol v1](protocol/README.md)
+- [Architecture](docs/architecture.md)
+
+## License
+
+ライセンスは現時点では明示されていません。利用・再配布を検討する場合はRepositoryの最新情報をご確認ください。

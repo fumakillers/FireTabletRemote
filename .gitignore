@@ -36,5 +36,7 @@ google-services.json
 # .NET
 bin/
 obj/
+.vs/
+*.slnx
 *.user
 *.suo

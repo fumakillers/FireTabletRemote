@@ -144,10 +144,27 @@ docs/                      Architecture notes
 tools/MockWebSocketServer/ Controller development mock server
 ```
 
-主要技術:
+### Technology and build environment
 
-- Server: Kotlin / Android / Foreground Service / AccessibilityService / Java-WebSocket
-- Controller: .NET MAUI / C# / ClientWebSocket
+#### FireRemoteServer
+
+- Kotlin / Android
+- Android Gradle Plugin 9.2.1
+- Gradle 9.4.1
+- Java 17
+- compileSdk 36 / targetSdk 36 / minSdk 30
+- Foreground Service / AccessibilityService
+- Java-WebSocket 1.6.0
+
+KotlinのバージョンはProject内で明示的に固定していないため、ここでは特定のバージョンを記載していません。
+
+#### FireRemoteController
+
+- C# / .NET 10
+- .NET MAUI
+- Target Framework: `net10.0-android`
+- Supported Android API: 30以上
+- ClientWebSocket
 
 ### Server build and test
 

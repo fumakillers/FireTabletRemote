@@ -20,6 +20,7 @@ public partial class MainPage : ContentPage
 	private static readonly TimeSpan PreviewInterval = TimeSpan.FromSeconds(1);
 	private static readonly TimeSpan LongPressThreshold = TimeSpan.FromMilliseconds(LongPressDurationMs);
 	private readonly IRemoteWebSocketClient client;
+	private readonly AndroidPreviewImagePresenter previewImagePresenter;
 	private readonly PreviewGestureClassifier previewGestureClassifier =
 		new(LongPressThreshold, MinimumSwipeDistance);
 	private readonly object previewLoopLock = new();
@@ -39,6 +40,7 @@ public partial class MainPage : ContentPage
 		ServerIpEntry.Text = Preferences.Default.Get(ServerIpPreferenceKey, DefaultServerIp);
 		PortEntry.Text = Preferences.Default.Get(PortPreferenceKey, DefaultPort);
 		this.client = client;
+		previewImagePresenter = new AndroidPreviewImagePresenter(PreviewImage);
 		client.ConnectionChanged += OnConnectionChanged;
 		client.MessageReceived += OnMessageReceived;
 		SetConnectionState(client.IsConnected ? "Connected" : "Disconnected", client.IsConnected);
@@ -462,6 +464,7 @@ public partial class MainPage : ContentPage
 			{
 				latestPreviewFrame = null;
 				PreviewImage.Source = null;
+				previewImagePresenter.Clear();
 				PreviewPlaceholder.IsVisible = true;
 			}
 		});
@@ -578,15 +581,29 @@ public partial class MainPage : ContentPage
 		switch (response)
 		{
 			case PreviewFrame frame:
-				latestPreviewFrame = frame;
-				PreviewImage.Source = ImageSource.FromStream(
-					() => new MemoryStream(frame.Data, writable: false));
-				PreviewPlaceholder.IsVisible = false;
-				SetStatus($"Preview: {frame.Width}x{frame.Height}, {frame.Data.Length} bytes");
+				_ = DisplayPreviewFrameAsync(frame);
 				break;
 			case PreviewError error:
 				SetStatus($"Preview unavailable: {error.Message}");
 				break;
+		}
+	}
+
+	private async Task DisplayPreviewFrameAsync(PreviewFrame frame)
+	{
+		try
+		{
+			await previewImagePresenter.TryDisplayAsync(frame.Data, () =>
+			{
+				latestPreviewFrame = frame;
+				PreviewPlaceholder.IsVisible = false;
+				SetStatus($"Preview: {frame.Width}x{frame.Height}, {frame.Data.Length} bytes");
+			});
+		}
+		catch (Exception error)
+		{
+			MainThread.BeginInvokeOnMainThread(() =>
+				SetStatus($"Preview image failed: {error.Message}"));
 		}
 	}
 

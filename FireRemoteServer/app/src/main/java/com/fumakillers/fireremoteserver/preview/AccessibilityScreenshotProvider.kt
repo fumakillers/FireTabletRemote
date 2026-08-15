@@ -1,7 +1,7 @@
 package com.fumakillers.fireremoteserver.preview
 
 import android.graphics.Bitmap
-import android.util.Log
+import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -26,12 +26,12 @@ class AccessibilityScreenshotProvider(
                     when (screenshotResult) {
                         is ScreenshotCaptureResult.Success -> encode(screenshotResult.bitmap, callback)
                         is ScreenshotCaptureResult.Error -> {
-                            Log.w(TAG, screenshotResult.message)
+                            RemoteLogger.warn(TAG, screenshotResult.message)
                             callback(PreviewResult.Error(screenshotResult.message))
                         }
                     }
                 } catch (error: RuntimeException) {
-                    Log.e(TAG, "Preview encode failed", error)
+                    RemoteLogger.error(TAG, "Preview encode failed", error)
                     callback(PreviewResult.Error("Preview encode failed"))
                 } finally {
                     captureInProgress.set(false)
@@ -39,7 +39,7 @@ class AccessibilityScreenshotProvider(
             }
         } catch (error: RuntimeException) {
             captureInProgress.set(false)
-            Log.e(TAG, "Screenshot request failed", error)
+            RemoteLogger.error(TAG, "Screenshot request failed", error)
             callback(PreviewResult.Error("Screenshot request failed"))
         }
     }
@@ -61,13 +61,13 @@ class AccessibilityScreenshotProvider(
             try {
                 val jpegBytes = ByteArrayOutputStream().use { stream ->
                     if (!output.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, stream)) {
-                        Log.w(TAG, "JPEG encode was rejected")
+                        RemoteLogger.warn(TAG, "JPEG encode was rejected")
                         callback(PreviewResult.Error("JPEG encode failed"))
                         return
                     }
                     stream.toByteArray()
                 }
-                Log.d(TAG, "Screenshot encoded: ${output.width}x${output.height}, ${jpegBytes.size} bytes")
+                RemoteLogger.debug(TAG, "Screenshot encoded: ${output.width}x${output.height}, ${jpegBytes.size} bytes")
                 callback(
                     PreviewResult.Frame(
                         width = output.width,

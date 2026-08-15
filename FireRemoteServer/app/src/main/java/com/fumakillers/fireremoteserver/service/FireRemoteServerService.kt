@@ -6,12 +6,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
-import android.util.Log
 import com.fumakillers.fireremoteserver.MainActivity
 import com.fumakillers.fireremoteserver.accessibility.AccessibilityServiceBridge
 import com.fumakillers.fireremoteserver.accessibility.AccessibilityScreenshotGateway
 import com.fumakillers.fireremoteserver.command.AndroidCommandExecutor
 import com.fumakillers.fireremoteserver.command.CommandDispatcher
+import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import com.fumakillers.fireremoteserver.network.CommandWebSocketServer
 import com.fumakillers.fireremoteserver.preview.AccessibilityScreenshotProvider
 
@@ -21,6 +21,7 @@ class FireRemoteServerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        RemoteLogger.info(TAG, "Starting service")
         ServerRuntimeState.store.update(ServerState.STARTING)
         createNotificationChannel()
         val openApp = PendingIntent.getActivity(
@@ -49,14 +50,15 @@ class FireRemoteServerService : Service() {
             server?.stop(1_000)
         } catch (error: InterruptedException) {
             Thread.currentThread().interrupt()
-            Log.w(TAG, "Interrupted while stopping WebSocket server", error)
+            RemoteLogger.warn(TAG, "Interrupted while stopping WebSocket server", error)
         } catch (error: RuntimeException) {
-            Log.e(TAG, "Could not stop WebSocket server cleanly", error)
+            RemoteLogger.error(TAG, "Could not stop WebSocket server cleanly", error)
         } finally {
             server = null
             previewProvider?.close()
             previewProvider = null
             ServerRuntimeState.store.update(ServerState.STOPPED)
+            RemoteLogger.info(TAG, "Service stopped")
         }
         super.onDestroy()
     }
@@ -76,7 +78,7 @@ class FireRemoteServerService : Service() {
                 ServerRuntimeState.store.update(ServerState.RUNNING)
             },
             onFatalError = { error ->
-                Log.e(TAG, "WebSocket server failed", error)
+                RemoteLogger.error(TAG, "WebSocket server failed", error)
                 ServerRuntimeState.store.update(ServerState.ERROR)
             },
         )
@@ -84,7 +86,7 @@ class FireRemoteServerService : Service() {
         try {
             webSocketServer.start()
         } catch (error: RuntimeException) {
-            Log.e(TAG, "Could not start WebSocket server", error)
+            RemoteLogger.error(TAG, "Could not start WebSocket server", error)
             ServerRuntimeState.store.update(ServerState.ERROR)
         }
     }

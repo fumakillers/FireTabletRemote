@@ -3,7 +3,6 @@ package com.fumakillers.fireremoteserver.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
-import android.util.Log
 import android.view.WindowManager
 import com.fumakillers.fireremoteserver.command.AndroidActionGateway
 import com.fumakillers.fireremoteserver.command.AndroidActionResult
@@ -11,6 +10,7 @@ import com.fumakillers.fireremoteserver.command.AndroidGesture
 import com.fumakillers.fireremoteserver.command.AndroidGestureGateway
 import com.fumakillers.fireremoteserver.command.AndroidGestureResult
 import com.fumakillers.fireremoteserver.command.AndroidGlobalAction
+import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import java.util.concurrent.atomic.AtomicBoolean
 
 object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway {
@@ -34,10 +34,10 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
     @Synchronized
     override fun perform(action: AndroidGlobalAction): AndroidActionResult {
         val actionName = action.name.lowercase()
-        Log.i(TAG, "$actionName command received")
+        RemoteLogger.info(TAG, "$actionName command received")
         val connectedService = service
         if (connectedService == null) {
-            Log.w(TAG, "$actionName failed: Accessibility service is not connected")
+            RemoteLogger.warn(TAG, "$actionName failed: Accessibility service is not connected")
             return AndroidActionResult.ServiceNotConnected
         }
 
@@ -49,14 +49,14 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
 
         return try {
             if (connectedService.performGlobalAction(globalAction)) {
-                Log.i(TAG, "$actionName action performed successfully")
+                RemoteLogger.info(TAG, "$actionName action performed successfully")
                 AndroidActionResult.Performed
             } else {
-                Log.w(TAG, "$actionName action was rejected by AccessibilityService")
+                RemoteLogger.warn(TAG, "$actionName action was rejected by AccessibilityService")
                 AndroidActionResult.Rejected
             }
         } catch (error: RuntimeException) {
-            Log.e(TAG, "$actionName action failed", error)
+            RemoteLogger.error(TAG, "$actionName action failed", error)
             AndroidActionResult.Failed
         }
     }
@@ -70,7 +70,7 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
             is AndroidGesture.LongPress -> "longPress"
             is AndroidGesture.Swipe -> "swipe"
         }
-        Log.i(TAG, "$gestureName command received: $gesture")
+        RemoteLogger.info(TAG, "$gestureName command received: $gesture")
         val callbackCompleted = AtomicBoolean(false)
         fun complete(result: AndroidGestureResult) {
             if (callbackCompleted.compareAndSet(false, true)) {
@@ -79,7 +79,7 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
         }
         val connectedService = synchronized(this) { service }
         if (connectedService == null) {
-            Log.w(TAG, "$gestureName failed: Accessibility service is not connected")
+            RemoteLogger.warn(TAG, "$gestureName failed: Accessibility service is not connected")
             complete(AndroidGestureResult.ServiceNotConnected)
             return
         }
@@ -101,7 +101,7 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
                     x !in 0 until screenBounds.width() || y !in 0 until screenBounds.height()
                 }
             ) {
-                Log.w(
+                RemoteLogger.warn(
                     TAG,
                     "$gestureName rejected: coordinates outside " +
                         "${screenBounds.width()}x${screenBounds.height()}",
@@ -135,23 +135,23 @@ object AccessibilityServiceBridge : AndroidActionGateway, AndroidGestureGateway 
                 gestureDescription,
                 object : AccessibilityService.GestureResultCallback() {
                     override fun onCompleted(gestureDescription: GestureDescription) {
-                        Log.i(TAG, "$gestureName gesture completed")
+                        RemoteLogger.info(TAG, "$gestureName gesture completed")
                         complete(AndroidGestureResult.Completed)
                     }
 
                     override fun onCancelled(gestureDescription: GestureDescription) {
-                        Log.w(TAG, "$gestureName gesture cancelled")
+                        RemoteLogger.warn(TAG, "$gestureName gesture cancelled")
                         complete(AndroidGestureResult.Cancelled)
                     }
                 },
                 null,
             )
             if (!accepted) {
-                Log.w(TAG, "$gestureName gesture was rejected by AccessibilityService")
+                RemoteLogger.warn(TAG, "$gestureName gesture was rejected by AccessibilityService")
                 complete(AndroidGestureResult.Rejected)
             }
         } catch (error: RuntimeException) {
-            Log.e(TAG, "$gestureName gesture failed", error)
+            RemoteLogger.error(TAG, "$gestureName gesture failed", error)
             complete(AndroidGestureResult.Failed)
         }
     }

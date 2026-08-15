@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".FireRemoteApplication"
         android:allowBackup="true"
         android:label="Fire Remote Server"
         android:theme="@style/AppTheme">

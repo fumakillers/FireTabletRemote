@@ -1,7 +1,7 @@
 package com.fumakillers.fireremoteserver.network
 
-import android.util.Log
 import com.fumakillers.fireremoteserver.command.CommandDispatcher
+import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import org.java_websocket.WebSocket
 import org.java_websocket.drafts.Draft
 import org.java_websocket.handshake.ClientHandshake
@@ -25,39 +25,39 @@ class CommandWebSocketServer(
     }
 
     override fun onOpen(connection: WebSocket, handshake: ClientHandshake) {
-        Log.i(TAG, "Client connected: ${connection.remoteSocketAddress}")
+        RemoteLogger.info(TAG, "Client connected: ${connection.remoteSocketAddress}")
     }
 
     override fun onClose(connection: WebSocket, code: Int, reason: String, remote: Boolean) {
-        Log.i(TAG, "Client disconnected: code=$code reason=$reason")
+        RemoteLogger.info(TAG, "Client disconnected: code=$code reason=$reason")
     }
 
     override fun onMessage(connection: WebSocket, message: String) {
         if (message.contains("\"type\":\"previewRequest\"")) {
-            Log.d(PREVIEW_TAG, "previewRequest received")
+            RemoteLogger.debug(PREVIEW_TAG, "previewRequest received")
         } else {
-            Log.i(TAG, "Message: $message")
+            RemoteLogger.info(TAG, "Message: $message")
         }
         dispatcher.dispatch(message) { response ->
             if (connection.isOpen) {
                 try {
                     connection.send(response)
                 } catch (error: RuntimeException) {
-                    Log.e(TAG, "Could not send WebSocket response", error)
+                    RemoteLogger.error(TAG, "Could not send WebSocket response", error)
                 }
             }
         }
     }
 
     override fun onError(connection: WebSocket?, error: Exception) {
-        Log.e(TAG, "WebSocket error", error)
+        RemoteLogger.error(TAG, "WebSocket error", error)
         if (connection == null) {
             onFatalError(error)
         }
     }
 
     override fun onStart() {
-        Log.i(TAG, "WebSocket server listening on port $port")
+        RemoteLogger.info(TAG, "WebSocket server listening on port $port")
         connectionLostTimeout = 30
         onListening()
     }

@@ -2,10 +2,10 @@ package com.fumakillers.fireremoteserver.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
-import android.util.Log
 import android.view.Display
 import com.fumakillers.fireremoteserver.preview.ScreenshotCaptureResult
 import com.fumakillers.fireremoteserver.preview.ScreenshotGateway
+import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import java.util.concurrent.Executor
 
 object AccessibilityScreenshotGateway : ScreenshotGateway {
@@ -61,7 +61,7 @@ object AccessibilityScreenshotGateway : ScreenshotGateway {
                                 }
                             }
                         } catch (error: RuntimeException) {
-                            Log.e(TAG, "Screenshot buffer conversion failed", error)
+                            RemoteLogger.error(TAG, "Screenshot buffer conversion failed", error)
                             ScreenshotCaptureResult.Error("Screenshot buffer conversion failed")
                         } finally {
                             hardwareBuffer.close()
@@ -75,7 +75,7 @@ object AccessibilityScreenshotGateway : ScreenshotGateway {
                 },
             )
         } catch (error: RuntimeException) {
-            Log.e(TAG, "Screenshot request failed", error)
+            RemoteLogger.error(TAG, "Screenshot request failed", error)
             callback(ScreenshotCaptureResult.Error("Screenshot request failed"))
         }
     }

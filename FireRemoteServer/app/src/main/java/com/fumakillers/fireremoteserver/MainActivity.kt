@@ -17,8 +17,10 @@ import com.fumakillers.fireremoteserver.logging.RecentLogRecord
 import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import com.fumakillers.fireremoteserver.network.DeviceIpAddressResolver
 import com.fumakillers.fireremoteserver.service.FireRemoteServerService
+import com.fumakillers.fireremoteserver.service.ServerRecoveryPolicy
 import com.fumakillers.fireremoteserver.service.ServerRuntimeState
 import com.fumakillers.fireremoteserver.service.ServerState
+import com.fumakillers.fireremoteserver.service.createServerRecoveryPolicy
 import java.util.ArrayDeque
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -32,6 +34,7 @@ class MainActivity : Activity() {
     private lateinit var stopServerButton: Button
     private lateinit var logScrollView: ScrollView
     private lateinit var logTextView: TextView
+    private lateinit var recoveryPolicy: ServerRecoveryPolicy
 
     private val addressExecutor = Executors.newSingleThreadExecutor()
     private val addressRequest = AtomicInteger()
@@ -51,6 +54,7 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        recoveryPolicy = createServerRecoveryPolicy()
 
         val padding = dp(16)
         val content = LinearLayout(this).apply {
@@ -134,10 +138,18 @@ class MainActivity : Activity() {
         startServerButton = Button(context).apply {
             text = "Start server"
             setOnClickListener {
+                recoveryPolicy.userRequestedStart()
+                RemoteLogger.info(TAG, "User requested server start")
                 try {
                     startForegroundService(Intent(context, FireRemoteServerService::class.java))
                 } catch (error: RuntimeException) {
-                    RemoteLogger.error(TAG, "Could not request server start", error)
+                    val decision = recoveryPolicy.recordStartFailure()
+                    RemoteLogger.error(
+                        TAG,
+                        "Could not request server start: failureCount=${decision.failureCount} " +
+                            "restartBlocked=${decision.restartBlocked}",
+                        error,
+                    )
                     ServerRuntimeState.store.update(ServerState.ERROR)
                 }
             }
@@ -146,6 +158,8 @@ class MainActivity : Activity() {
         stopServerButton = Button(context).apply {
             text = "Stop server"
             setOnClickListener {
+                recoveryPolicy.userRequestedStop()
+                RemoteLogger.info(TAG, "User requested server stop; automatic restart disabled")
                 val stopped = stopService(Intent(context, FireRemoteServerService::class.java))
                 if (!stopped) ServerRuntimeState.store.update(ServerState.STOPPED)
             }
@@ -185,7 +199,7 @@ class MainActivity : Activity() {
             ServerState.RUNNING -> "Server: Running"
             ServerState.ERROR -> "Server: Error"
         }
-        startServerButton.isEnabled = state == ServerState.STOPPED
+        startServerButton.isEnabled = state == ServerState.STOPPED || state == ServerState.ERROR
         stopServerButton.isEnabled = state != ServerState.STOPPED
     }
 

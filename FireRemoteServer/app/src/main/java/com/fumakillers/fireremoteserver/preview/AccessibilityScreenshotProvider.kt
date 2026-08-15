@@ -1,6 +1,7 @@
 package com.fumakillers.fireremoteserver.preview
 
 import android.graphics.Bitmap
+import android.os.SystemClock
 import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
@@ -10,6 +11,7 @@ import kotlin.math.roundToInt
 
 class AccessibilityScreenshotProvider(
     private val screenshotGateway: ScreenshotGateway,
+    private val elapsedRealtimeMs: () -> Long = SystemClock::elapsedRealtime,
 ) : PreviewProvider, AutoCloseable {
     private val worker: ExecutorService = Executors.newSingleThreadExecutor()
     private val captureInProgress = AtomicBoolean(false)
@@ -20,19 +22,26 @@ class AccessibilityScreenshotProvider(
             return
         }
 
+        val startedAtMs = elapsedRealtimeMs()
+        val callbackCompleted = AtomicBoolean(false)
+        fun complete(result: PreviewResult) {
+            if (callbackCompleted.compareAndSet(false, true)) callback(result)
+        }
+
         try {
             screenshotGateway.capture(worker) { screenshotResult ->
                 try {
                     when (screenshotResult) {
-                        is ScreenshotCaptureResult.Success -> encode(screenshotResult.bitmap, callback)
+                        is ScreenshotCaptureResult.Success ->
+                            encode(screenshotResult.bitmap, startedAtMs, ::complete)
                         is ScreenshotCaptureResult.Error -> {
                             RemoteLogger.warn(TAG, screenshotResult.message)
-                            callback(PreviewResult.Error(screenshotResult.message))
+                            complete(PreviewResult.Error(screenshotResult.message))
                         }
                     }
                 } catch (error: RuntimeException) {
                     RemoteLogger.error(TAG, "Preview encode failed", error)
-                    callback(PreviewResult.Error("Preview encode failed"))
+                    complete(PreviewResult.Error("Preview encode failed"))
                 } finally {
                     captureInProgress.set(false)
                 }
@@ -40,11 +49,15 @@ class AccessibilityScreenshotProvider(
         } catch (error: RuntimeException) {
             captureInProgress.set(false)
             RemoteLogger.error(TAG, "Screenshot request failed", error)
-            callback(PreviewResult.Error("Screenshot request failed"))
+            complete(PreviewResult.Error("Screenshot request failed"))
         }
     }
 
-    private fun encode(source: Bitmap, callback: (PreviewResult) -> Unit) {
+    private fun encode(
+        source: Bitmap,
+        startedAtMs: Long,
+        callback: (PreviewResult) -> Unit,
+    ) {
         try {
             val sourceWidth = source.width
             val sourceHeight = source.height
@@ -67,7 +80,12 @@ class AccessibilityScreenshotProvider(
                     }
                     stream.toByteArray()
                 }
-                RemoteLogger.debug(TAG, "Screenshot encoded: ${output.width}x${output.height}, ${jpegBytes.size} bytes")
+                val durationMs = elapsedRealtimeMs() - startedAtMs
+                RemoteLogger.debug(
+                    TAG,
+                    "Screenshot encoded: ${output.width}x${output.height}, " +
+                        "${jpegBytes.size} bytes, durationMs=$durationMs",
+                )
                 callback(
                     PreviewResult.Frame(
                         width = output.width,

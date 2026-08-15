@@ -7,6 +7,7 @@ import com.fumakillers.fireremoteserver.preview.ScreenshotCaptureResult
 import com.fumakillers.fireremoteserver.preview.ScreenshotGateway
 import com.fumakillers.fireremoteserver.logging.RemoteLogger
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
 
 object AccessibilityScreenshotGateway : ScreenshotGateway {
     private var service: FireRemoteAccessibilityService? = null
@@ -27,9 +28,18 @@ object AccessibilityScreenshotGateway : ScreenshotGateway {
         executor: Executor,
         callback: (ScreenshotCaptureResult) -> Unit,
     ) {
+        val callbackCompleted = AtomicBoolean(false)
+        fun complete(result: ScreenshotCaptureResult) {
+            if (callbackCompleted.compareAndSet(false, true)) {
+                callback(result)
+            } else if (result is ScreenshotCaptureResult.Success) {
+                result.bitmap.recycle()
+                RemoteLogger.warn(TAG, "Discarded duplicate screenshot callback")
+            }
+        }
         val connectedService = synchronized(this) { service }
         if (connectedService == null) {
-            callback(ScreenshotCaptureResult.Error("Accessibility service is not connected"))
+            complete(ScreenshotCaptureResult.Error("Accessibility service is not connected"))
             return
         }
 
@@ -66,17 +76,17 @@ object AccessibilityScreenshotGateway : ScreenshotGateway {
                         } finally {
                             hardwareBuffer.close()
                         }
-                        callback(result)
+                        complete(result)
                     }
 
                     override fun onFailure(errorCode: Int) {
-                        callback(ScreenshotCaptureResult.Error(screenshotErrorMessage(errorCode)))
+                        complete(ScreenshotCaptureResult.Error(screenshotErrorMessage(errorCode)))
                     }
                 },
             )
         } catch (error: RuntimeException) {
             RemoteLogger.error(TAG, "Screenshot request failed", error)
-            callback(ScreenshotCaptureResult.Error("Screenshot request failed"))
+            complete(ScreenshotCaptureResult.Error("Screenshot request failed"))
         }
     }
 
